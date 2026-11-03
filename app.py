@@ -477,7 +477,7 @@ s_G_new_pct = d_box.slider(
          "G/Y from this current level (item D.2).",
     key=wkey("s_G_new_pct"))
 dG_pct = d_box.number_input(
-    "D.2 Rise in G/Y for S3 and S4 (pp)", 0.5, 10.0, 1.0, 0.5,
+    "D.2 Rise in G/Y for S3 and S4 (pp)", 0.0, 10.0, 0.0, 0.5,
     help="Sections S3 and S4 raise G/Y by this much from its current level (item D.1), "
          "holding every other setting as it is now.",
     key=wkey("dG_pct"))
@@ -946,6 +946,9 @@ st.write(f"What happens if government spending **rises by {dG_pct:.1f} percentag
          "other setting (for example λ in item F) and the starting point changes, so "
          "these effects change too. The left column is the same steady state as "
          "Section S1's \"Current settings\".")
+if dG_pct == 0:
+    st.info("Item D.2 is 0, so G/Y does not rise and every change below is zero. "
+            "Set D.2 above 0 to see the effect of new spending.")
 
 marg_left_label = f"Current situation (G/Y = {s_G_new_pct:.1f}%)"
 marg_right_label = f"After the increase (G/Y = {s_G_new_pct + dG_pct:.1f}%)"
@@ -1086,6 +1089,9 @@ st.write(
     "consumption and labor rows."
 )
 
+if dG_pct == 0:
+    st.info("Item D.2 is 0, so there is no new spending to divide by and the "
+            "multipliers are blank. Set D.2 above 0 to compute them.")
 if path is None:
     st.info("Impact multipliers are unavailable at these settings (see the "
              "saddle-path note above) -- only long-run multipliers are shown.")
@@ -1174,12 +1180,11 @@ for rows, title, height in (
         (mult_table[~is_pp], "Multipliers ΔX/ΔG: change in each variable per dollar of new government spending", 520),
         (mult_table[is_pp], "Hours and tax rates: percentage-point change per dollar of new government spending", 460)):
     fig_mult = go.Figure()
-    fig_mult.add_trace(go.Bar(name="Long-run", x=rows["Variable"],
-                               y=rows["Long-run ΔX/ΔG"], marker_color="#2563eb",
-                               texttemplate="%{y:+.2f}", textposition="outside"))
-    fig_mult.add_trace(go.Bar(name="Impact (year-0)", x=rows["Variable"],
-                               y=rows["Impact (year-0) ΔX/ΔG"], marker_color="#f59e0b",
-                               texttemplate="%{y:+.2f}", textposition="outside"))
+    for name, col, color in (("Long-run", "Long-run ΔX/ΔG", "#2563eb"),
+                             ("Impact (year-0)", "Impact (year-0) ΔX/ΔG", "#f59e0b")):
+        fig_mult.add_trace(go.Bar(name=name, x=rows["Variable"], y=rows[col], marker_color=color,
+                                   text=["" if pd.isna(v) else f"{v:.2f}" for v in rows[col]],
+                                   textposition="outside"))
     fig_mult.add_hline(y=0, line_dash="dot", line_color="gray")
     fig_mult.update_layout(barmode="group", title=title,
                             yaxis_title="ΔX / ΔG", height=height, margin=dict(t=50, b=20))
