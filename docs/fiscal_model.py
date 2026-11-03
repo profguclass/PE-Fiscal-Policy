@@ -859,38 +859,50 @@ def welfare_gains(bench: dict, out: dict, beta: float, theta_L: float, phi: floa
         disc = beta ** np.arange(len(u))
         return (1.0 - beta) * np.sum(disc * u) + beta ** len(u) * u[-1]
 
+    gains = consumption_equivalent(bench, {i: avg_u(i) for i in types}, out["lam"], theta_L, phi)
+    return {k: float(v) for k, v in gains.items()}
+
+
+def period_welfare_gains(bench: dict, out: dict, theta_L: float, phi: float) -> dict:
+    """Each year's utility along the path `out` as a consumption-equivalent % gain over
+    the steady state `bench`: the % change in benchmark private consumption that gives
+    the same utility as that year. Same conversion as welfare_gains, year by year."""
+    types = ["O", "H"] if (out["lam"] > 0 and bench["lam"] > 0) else ["O"]
+    target = {i: period_utility(out["C" + i], out["N" + i], out["GC"], theta_L, phi) for i in types}
+    return consumption_equivalent(bench, target, out["lam"], theta_L, phi)
+
+
+def consumption_equivalent(bench: dict, target: dict, lam: float, theta_L: float, phi: float) -> dict:
+    """Converts per-year utility levels `target` ("O", and "H" with two types; scalars or
+    arrays) into % changes in `bench`'s private consumption giving the same utility, plus
+    "all": one common % change for everyone giving the same population-weighted (with
+    lam) utility."""
     def bench_u(i, mu):
         return period_utility(bench["C" + i][0] * (1.0 + mu), bench["N" + i][0],
                               bench["GC"][0], theta_L, phi)
 
-    target = {i: avg_u(i) for i in types}
     gains = {}
-    for i in types:
-        x = np.exp(target[i] - theta_L * np.log(1.0 - bench["N" + i][0])) - phi * bench["GC"][0]
+    for i, u in target.items():
+        x = np.exp(u - theta_L * np.log(1.0 - bench["N" + i][0])) - phi * bench["GC"][0]
         gains[i] = 100.0 * (x / bench["C" + i][0] - 1.0)
-    if len(types) == 1:
+    if len(target) == 1:
         gains["all"] = gains["O"]
         return gains
 
-    lam = out["lam"]
-    goal = lam * target["H"] + (1.0 - lam) * target["O"]
-    if not np.isfinite(goal):  # some year of the path has no valid allocation
-        gains["all"] = np.nan
-        return gains
+    goal = np.asarray(lam * target["H"] + (1.0 - lam) * target["O"], dtype=float)
 
     def excess(mu):
         return lam * bench_u("H", mu) + (1.0 - lam) * bench_u("O", mu) - goal
 
-    lo, hi = -1.0 + 1e-12, 1.0
-    while excess(hi) < 0:
-        hi *= 2.0
+    # Bisection on every element at once; a year with no valid allocation stays nan.
+    lo, hi = np.full(goal.shape, -1.0 + 1e-12), np.ones(goal.shape)
+    while np.any(excess(hi) < 0):
+        hi = np.where(excess(hi) < 0, 2.0 * hi, hi)
     for _ in range(200):
         mid = 0.5 * (lo + hi)
-        if excess(mid) < 0:
-            lo = mid
-        else:
-            hi = mid
-    gains["all"] = 100.0 * 0.5 * (lo + hi)
+        below = excess(mid) < 0
+        lo, hi = np.where(below, mid, lo), np.where(below, hi, mid)
+    gains["all"] = np.where(np.isfinite(goal), 100.0 * 0.5 * (lo + hi), np.nan)
     return gains
 
 

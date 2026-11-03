@@ -21,7 +21,7 @@ import appendix
 from fiscal_model import (
     calibrate_theta_L,
     household_outcomes,
-    period_utility,
+    period_welfare_gains,
     run_experiment,
     simulate_transition,
     steady_state_for_policy,
@@ -201,7 +201,7 @@ def render_inequality_tab(perf, perf_base, lam_new, lam_base, x, key, baseline):
 
 
 def render_welfare_tab(perf, perf_base, lam_new, lam_base, x, key, baseline):
-    """Consumption-equivalent welfare gains and period utility along a path,
+    """Consumption-equivalent welfare gains, overall and year by year, along a path,
     relative to the starting steady state perf_base; x runs from year 0."""
     beta_w = 1.0 / (1.0 + r_v)
     gains_all = welfare_gains(perf_base, perf, beta_w, theta_L_bench, phi_v)
@@ -237,40 +237,29 @@ def render_welfare_tab(perf, perf_base, lam_new, lam_base, x, key, baseline):
         "average utility per person, weighting the types by their population "
         "shares (1−λ and λ)."
     )
-    u_O = period_utility(perf["CO"], perf["NO"], perf["GC"], theta_L_bench, phi_v)
-    u_H = period_utility(perf["CH"], perf["NH"], perf["GC"], theta_L_bench, phi_v)
-    u_O_b = period_utility(perf_base["CO"], perf_base["NO"], perf_base["GC"], theta_L_bench, phi_v)
-    u_H_b = period_utility(perf_base["CH"], perf_base["NH"], perf_base["GC"], theta_L_bench, phi_v)
-    # Average utility per person, each scenario with its own population shares.
-    u_avg = lam_new * u_H + (1 - lam_new) * u_O
-    u_avg_b = lam_base * u_H_b + (1 - lam_base) * u_O_b
-    specs = [("Per optimizer", u_O - u_O_b, "#0d9488"),
-             ("Per hand-to-mouth household", u_H - u_H_b, "#db2777"),
-             ("Per person, average", u_avg - u_avg_b, "#2563eb")]
-    # The welfare gains' own steps: discounted sum over years 0..T, then the per-year
-    # equivalent with year T held forever, then that change as a % of consumption.
+    # Each year's utility as a consumption-equivalent % gain, the unit of the figures above.
+    yearly = period_welfare_gains(perf_base, perf, theta_L_bench, phi_v)
+    specs = [("Per optimizer", yearly["O"], "#0d9488"),
+             ("Per hand-to-mouth household", yearly["H"], "#db2777"),
+             ("Per person, average", yearly["all"], "#2563eb")]
     T = WELFARE_LAST_YEAR
-    disc = beta_w ** np.arange(T + 1)
-    dsum = [float(np.sum(disc * d[:T + 1])) for _, d, _ in specs]
-    per_year = [(1 - beta_w) * s + beta_w ** (T + 1) * d[T] for s, (_, d, _) in zip(dsum, specs)]
-    perf_chart(f"Period utility per person, relative to {baseline}", specs,
-        "Change in utility (utils)", x, f"{key}_utility", "sum", baseline,
+    perf_chart(f"Welfare each year per person, relative to {baseline}", specs,
+        "Consumption-equivalent gain (%)", x, f"{key}_utility", "sum", baseline,
         table_x=np.arange(T + 1),  # the years the welfare gains add up
-        last_rows=[(f"Discounted sum, 0 to {T}", dsum),
-                   (f"Per-year equivalent, year {T} held forever", per_year),
-                   ("Welfare gain incl. transition (%)", [gains_all["O"], gains_all["H"], gains_all["all"]])],
-        rule=(f"The last three rows rebuild the welfare gains above. **Discounted sum**: "
-              f"Σ βᵗ·(change in utility) over years 0 to {T}, with β = 1/(1+r). **Per-year "
-              f"equivalent**: (1−β) × that sum + β^{T + 1} × year {T}'s change, which "
-              f"counts year {T} for every year after it. **Welfare gain**: the % rise in "
-              "consumption that is worth that per-year change, the figure shown above."))
+        last_rows=[("Welfare gain incl. transition", [gains_all["O"], gains_all["H"], gains_all["all"]])],
+        rule=(f"The last row is the welfare gain shown above. It combines years 0 to {T}, "
+              f"discounted with β = 1/(1+r), with year {T} counted for every year after it; "
+              "it is not a simple sum or average of the yearly values, because utility, "
+              "not consumption, is what gets added up."))
     st.caption(
-        "Each year's utility, ln(C + φGᶜ) + θ_L·ln(1 − N), minus its value in "
-        f"{baseline}. It rises with own consumption, in-kind welfare, and leisure. Above "
-        f"zero means that year is better than {baseline}. A change of 0.01 is "
-        "worth about 1% more consumption-plus-in-kind-welfare (C + φGᶜ) in that "
-        f"year. Both {baseline} and the policy are valued with the current φ "
-        "(item C), so the comparison uses one set of preferences."
+        "Each year's welfare as a consumption equivalent: the % rise in "
+        f"{baseline}'s consumption that would make a household exactly as happy as it is "
+        "in that year of the policy, counting own consumption, in-kind welfare, and "
+        "leisure through utility ln(C + φGᶜ) + θ_L·ln(1 − N). Above zero means that year "
+        f"is better than {baseline}. The per-person line is one common % for both groups "
+        f"that gives that year's average utility per person. Both {baseline} and the "
+        "policy are valued with the current φ (item C), so the comparison uses one set "
+        "of preferences."
     )
 
 
@@ -1286,7 +1275,7 @@ with st.expander("ℹ️ Methodology notes"):
   current settings) and reports, year by year, growth of output, labor productivity,
   hours, and labor/capital/disposable income by household type; the hours gap;
   inequality between the types (income and consumption ratios and a two-group Gini);
-  and welfare (period utility and consumption-equivalent gains, with and without the
+  and welfare (consumption-equivalent gains each year and overall, with and without the
   transition). Levels come from solving each year's static equations exactly at the
   path's capital and optimizers' consumption. Welfare uses the current φ for both
   scenarios and discounts with β = 1/(1+r), adding up years 0 to 100 and counting
