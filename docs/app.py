@@ -911,7 +911,7 @@ else:
 # --------------------------------------------------------------------------
 
 st.header("Part II. The Effect of Raising G/Y", divider="gray")
-st.subheader("S3. Now vs After raising G/Y")
+st.subheader("S3. Now vs After raising G/Y, in levels and over time")
 st.write(f"What happens if government spending **rises by {dG_pct:.1f} percentage "
          f"points of output (item D.2), starting from the current situation**: G/Y goes "
          f"from {s_G_new_pct:.1f}% to {s_G_new_pct + dG_pct:.1f}%, while the tax mix, "
@@ -1020,12 +1020,12 @@ else:
 # S4. Multiplier effects of government spending, by variable
 # --------------------------------------------------------------------------
 
-st.subheader("S4. Multipliers: change per dollar of new spending")
+st.subheader("S4. Now vs After raising G/Y, per dollar of new spending")
 st.write(
     "How much does the increase in G/Y (item D.2) move each variable, per dollar of "
     r"new spending: $\Delta X/\Delta G$ for $X\in\{Y,C,I,K,K^G\}$, both "
     "**long-run** (comparing the two steady states) and **on impact** (year 0 of "
-    "the transition path above) -- same experiment as \"S3. Now vs After raising G/Y\", "
+    "the transition path above) -- same experiment as \"S3. Now vs After raising G/Y, in levels and over time\","
     "holding the tax mix, composition, φ, θ_G, and household types fixed at the "
     "sidebar's current settings. With hand-to-mouth households (item F), the two "
     "household types' consumption rows are group totals, so they add up to the "
@@ -1163,7 +1163,7 @@ with st.expander("ℹ️ Methodology notes"):
   transition). Levels come from solving each year's static equations exactly at the
   path's capital and optimizers' consumption. Welfare uses the current φ for both
   scenarios and discounts with β = 1/(1+r).
-- **S3 (Now vs After raising G/Y)** instead isolates the
+- **S3 (Now vs After raising G/Y, in levels and over time)** instead isolates the
   effect of more government spending in the *current* situation: starting from the
   current settings (including the current G/Y, item D.1), G/Y rises by the amount in
   item D.2 while every other setting (tax mix, composition, φ, θ_G, household
