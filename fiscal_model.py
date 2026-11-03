@@ -837,20 +837,23 @@ def period_utility(C, N, GC, theta_L: float, phi: float):
     return np.log(C + phi * GC) + theta_L * np.log(1.0 - N)
 
 
+WELFARE_LAST_YEAR = 100  # welfare sums years 0..100, then holds year 100 forever
+
+
 def welfare_gains(bench: dict, out: dict, beta: float, theta_L: float, phi: float,
-                  long_run: bool = False) -> dict:
+                  long_run: bool = False, last_year: int = WELFARE_LAST_YEAR) -> dict:
     """Consumption-equivalent welfare gains, in %, of the path `out` relative to staying
     at the steady state `bench` forever (both from `household_outcomes`, `bench` with a
     single column): the permanent % change in benchmark private consumption that would
     give a household the same lifetime utility as the path. Lifetime utility discounts
-    with beta and holds the path's last year forever; long_run=True uses that last year
-    only (steady state vs steady state). Returns gains for optimizers "O", hand-to-mouth
+    with beta, sums years 0 to `last_year`, and holds year `last_year` forever after;
+    long_run=True uses year `last_year` only (steady state vs steady state). Returns gains for optimizers "O", hand-to-mouth
     households "H" (when both have lam>0), and "all": one common % change for everyone
     that gives the same population-weighted (with out's lam) lifetime utility."""
     types = ["O", "H"] if (out["lam"] > 0 and bench["lam"] > 0) else ["O"]
 
     def avg_u(i):  # (1-beta) * lifetime utility, i.e. its per-year equivalent
-        u = period_utility(out["C" + i], out["N" + i], out["GC"], theta_L, phi)
+        u = period_utility(out["C" + i], out["N" + i], out["GC"], theta_L, phi)[:last_year + 1]
         if long_run:
             return u[-1]
         disc = beta ** np.arange(len(u))

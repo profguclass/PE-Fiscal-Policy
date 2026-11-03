@@ -27,6 +27,7 @@ from fiscal_model import (
     steady_state_for_policy,
     two_group_gini,
     welfare_gains,
+    WELFARE_LAST_YEAR,
 )
 
 st.set_page_config(page_title="Fiscal Policy in General Equilibrium",
@@ -148,17 +149,25 @@ def level(arr_path, arr_bench):
     return np.concatenate([np.atleast_1d(arr_bench), arr_path])
 
 
-def perf_chart(title, specs, yaxis_title, x, key, how, baseline="the benchmark"):
+def perf_chart(title, specs, yaxis_title, x, key, how, baseline="the benchmark", table_x=None,
+               last_rows=None, rule=None):
     """A line chart plus, below it, a table of the same numbers with a final row
-    for the cumulative effect over the years shown."""
+    for the cumulative effect over the years shown (table_x, if given, sets the
+    table's years instead of the chart's; last_rows, a list of (label, one value
+    per series), replaces that final row, and rule then describes it)."""
     st.plotly_chart(line_fig(title, specs, yaxis_title, x), use_container_width=True, key=key)
-    label, rule = cumulative_rules[how]
-    table = pd.DataFrame({"Year": [str(v) for v in x] + [f"{label}, {x[0]} to {x[-1]}"],
-                          **{name: np.append(arr[:len(x)], cumulative(arr[:len(x)], how))
-                             for name, arr, _ in specs}})
+    x = x if table_x is None else table_x
+    if last_rows is None:
+        label, rule = cumulative_rules[how]
+        last_rows = [(f"{label}, {x[0]} to {x[-1]}",
+                      [cumulative(arr[:len(x)], how) for _, arr, _ in specs])]
+        rule = f"The last row is {rule}."
+    table = pd.DataFrame({"Year": [str(v) for v in x] + [lab for lab, _ in last_rows],
+                          **{name: np.append(arr[:len(x)], [vals[j] for _, vals in last_rows])
+                             for j, (name, arr, _) in enumerate(specs)}})
     with st.expander(f"Data table: {title}"):
         st.caption(f"Units: {yaxis_title}." + (f" Year −1 is {baseline}." if x[0] < 0 else "")
-                   + f" The last row is {rule}.")
+                   + f" {rule}")
         st.dataframe(table, hide_index=True, use_container_width=True,
                      column_config={name: st.column_config.NumberColumn(format="%.3f")
                                     for name, _, _ in specs})
@@ -216,9 +225,12 @@ def render_welfare_tab(perf, perf_base, lam_new, lam_base, x, key, baseline):
         f"consumption have to rise, every year forever, in {baseline}, to "
         "make it exactly as happy as living through this policy?* A positive "
         "number means the policy makes the household better off. **Including the "
-        "transition** adds up utility year by year from year 0 on, discounted "
-        "with β = 1/(1+r); this is what a household alive when the policy starts "
-        "gets. **Long run only** compares the two steady states and ignores the "
+        f"transition** adds up utility year by year from year 0 to year {WELFARE_LAST_YEAR}, "
+        f"discounted with β = 1/(1+r), and counts year {WELFARE_LAST_YEAR}'s utility for every "
+        "year after that, since by then the economy has all but reached its new steady "
+        "state; this is what a household alive when the policy starts gets. **Long run "
+        f"only** compares the two steady states (year {WELFARE_LAST_YEAR} standing in for the "
+        "new one) and ignores the "
         "years of adjustment, which can matter a lot -- for example, when capital "
         "is run down, households consume more in the early years. **Per person "
         "(average)** is one common percent for both groups that gives the same "
@@ -232,11 +244,26 @@ def render_welfare_tab(perf, perf_base, lam_new, lam_base, x, key, baseline):
     # Average utility per person, each scenario with its own population shares.
     u_avg = lam_new * u_H + (1 - lam_new) * u_O
     u_avg_b = lam_base * u_H_b + (1 - lam_base) * u_O_b
-    perf_chart(f"Period utility per person, relative to {baseline}",
-        [("Per optimizer", u_O - u_O_b, "#0d9488"),
-         ("Per hand-to-mouth household", u_H - u_H_b, "#db2777"),
-         ("Per person, average", u_avg - u_avg_b, "#2563eb")],
-        "Change in utility (utils)", x, f"{key}_utility", "sum", baseline)
+    specs = [("Per optimizer", u_O - u_O_b, "#0d9488"),
+             ("Per hand-to-mouth household", u_H - u_H_b, "#db2777"),
+             ("Per person, average", u_avg - u_avg_b, "#2563eb")]
+    # The welfare gains' own steps: discounted sum over years 0..T, then the per-year
+    # equivalent with year T held forever, then that change as a % of consumption.
+    T = WELFARE_LAST_YEAR
+    disc = beta_w ** np.arange(T + 1)
+    dsum = [float(np.sum(disc * d[:T + 1])) for _, d, _ in specs]
+    per_year = [(1 - beta_w) * s + beta_w ** (T + 1) * d[T] for s, (_, d, _) in zip(dsum, specs)]
+    perf_chart(f"Period utility per person, relative to {baseline}", specs,
+        "Change in utility (utils)", x, f"{key}_utility", "sum", baseline,
+        table_x=np.arange(T + 1),  # the years the welfare gains add up
+        last_rows=[(f"Discounted sum, 0 to {T}", dsum),
+                   (f"Per-year equivalent, year {T} held forever", per_year),
+                   ("Welfare gain incl. transition (%)", [gains_all["O"], gains_all["H"], gains_all["all"]])],
+        rule=(f"The last three rows rebuild the welfare gains above. **Discounted sum**: "
+              f"Σ βᵗ·(change in utility) over years 0 to {T}, with β = 1/(1+r). **Per-year "
+              f"equivalent**: (1−β) × that sum + β^{T + 1} × year {T}'s change, which "
+              f"counts year {T} for every year after it. **Welfare gain**: the % rise in "
+              "consumption that is worth that per-year change, the figure shown above."))
     st.caption(
         "Each year's utility, ln(C + φGᶜ) + θ_L·ln(1 − N), minus its value in "
         f"{baseline}. It rises with own consumption, in-kind welfare, and leisure. Above "
@@ -1262,7 +1289,8 @@ with st.expander("ℹ️ Methodology notes"):
   and welfare (period utility and consumption-equivalent gains, with and without the
   transition). Levels come from solving each year's static equations exactly at the
   path's capital and optimizers' consumption. Welfare uses the current φ for both
-  scenarios and discounts with β = 1/(1+r).
+  scenarios and discounts with β = 1/(1+r), adding up years 0 to 100 and counting
+  year 100's utility for every year after that.
 - **S3 (Now vs After raising G/Y, in levels and over time)** instead isolates the
   effect of more government spending in the *current* situation: starting from the
   current settings (including the current G/Y, item D.1), G/Y rises by the amount in
