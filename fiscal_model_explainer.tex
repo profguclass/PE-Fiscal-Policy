@@ -346,18 +346,40 @@ steady state the economy ends up in (the new steady state, for a permanent
 shock; the current one, for a temporary shock, after which $G/Y$ returns
 to its current level).
 
+The table's right column is always the steady state of a \emph{permanent}
+increase, so item D.3 (Duration) changes the transition path but not the
+table. With a temporary increase the economy never reaches that column:
+once $G/Y$ drops back, the path returns to the left column. The app says
+so in a note under the table whenever D.3 is Temporary.
+
+The transition path has five tabs. Commodity, Labor and Financial market
+show the \% deviations above. Inequality and Welfare work exactly like
+S2's tabs, with the current situation in place of the benchmark: each
+year's static equations are solved exactly along this path, year $-1$ is
+the current situation, and welfare gains are measured against staying
+there.
+
 \subsection{Part II, S4: Now vs After raising G/Y, per dollar of new spending}
 
 Takes the \emph{same} pair of steady states as S3 --- the current $G/Y$
 vs.\ the current $G/Y$ plus the item D.2 increase, everything else held
-fixed --- and reports, for each of $X\in\{Y,C,I,K,K^G\}$ (and, when
-$\lambda>0$, each household type's total consumption), the multiplier
+fixed --- and reports, for every variable in S3's table (output, consumption,
+investment, both capital stocks, $G$ and its three parts, hours, the wage,
+both tax rates and the lump-sum tax; and, when $\lambda>0$, each household
+type's total consumption and hours), the multiplier
 \eq{ \frac{\Delta X}{\Delta G} = \frac{X_{\text{after}}-X_{\text{now}}}{G_{\text{after}}-G_{\text{now}}}, }
 both \textbf{long-run} (using the two steady-state levels directly) and
 \textbf{on impact} (using each variable's year-0 level along S3's own
 transition path in place of $X_{\text{after}}$). No new steady state or
 transition path is computed here --- it is purely S3's comparison, in
-dollars per dollar of new spending rather than percent changes. A
+dollars per dollar of new spending rather than percent changes. Hours and
+tax rates are in percentage points per unit of $G$; their numbers are much
+larger, so they get a second bar chart. The tax rates and the lump-sum tax
+have no linearized path, so their year-0 levels come from solving year 0's
+static equations exactly. As in S3, the long-run column always describes a
+permanent increase: under a temporary one the economy returns to the
+current situation, so only the impact column depends on item D.3 (the app
+notes this when D.3 is Temporary). A
 multiplier above $+1$ for output means a marginal dollar of spending
 raises long-run output by \emph{more} than a dollar, the paper's central
 result; investment's impact multiplier can be large even when its long-run
