@@ -203,7 +203,7 @@ def render():
     Spending must equal what is left. They receive no cash welfare, unless the
     hand-to-mouth share is zero: in that case the optimizers are the whole population, cash
     welfare is paid to them and added to what they have to spend, and the island becomes
-    the single representative household of Baxter and King.
+    a single representative household.
 
     Their machines also change from year to year. Next year's stock of machines equals
     this year's stock, minus the depreciation rate's fraction that wears out, plus this
@@ -432,8 +432,7 @@ def render():
     With the rental rate and the machines per hour known, the two work-versus-leisure rules
     and the households' budgets determine how many hours each kind of household works and
     how much each consumes. The leisure weight is chosen so that, before the policy
-    changes, total hours worked are one fifth, twenty percent, of everyone's time, which is
-    the target Baxter and King used.
+    changes, total hours worked are one fifth, twenty percent, of everyone's time.
     """
     )
     with st.container(border=True):
@@ -467,13 +466,13 @@ def render():
     everyone is an optimizer. Use only one tax, either all lump-sum or all income tax. And
     spend all government money on things households do not value: in-kind welfare with an
     in-kind value of zero, or public investment with a public-capital elasticity of zero.
-    What is left is exactly the model of Baxter & King (1993).
+    What is left is the model studied by Baxter and King (1993).
     """
     )
     with st.container(border=True):
         st.markdown("**In symbols**")
         st.markdown(
-            r"Baxter & King (1993): $\lambda=0$; $f^{LS}=1$ or $f^Y=1$; spending on $G^C$ "
+            r"Special case: $\lambda=0$; $f^{LS}=1$ or $f^Y=1$; spending on $G^C$ "
             r"with $\phi=0$, or on $I^G$ with $\theta_G=0$."
         )
     st.markdown(

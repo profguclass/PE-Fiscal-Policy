@@ -1,9 +1,8 @@
 """
-Streamlit teaching app: Baxter & King (1993, AER) "Fiscal Policy in General
-Equilibrium" -- an interactive neoclassical growth model with government
-purchases, extended with productive public capital, for exploring how fiscal
-policy parameters and the *size*, *composition*, and *financing* of
-government spending shape the whole economy.
+Streamlit teaching app: an interactive neoclassical growth model with government
+spending and productive public capital, for exploring how fiscal policy
+parameters and the *size*, *composition*, and *financing* of government spending
+shape the whole economy.
 
 Runs in the browser via stlite: build the site with  python build_stlite.py
 """
@@ -361,7 +360,7 @@ def wkey(name: str) -> str:
     client-side, even though the underlying computed value does reset correctly."""
     return f"{name}_{st.session_state['reset_version']}"
 
-# Fixed at the paper's calibration (Table 1): labor share of income,
+# Fixed calibration: labor share of income,
 # depreciation rate, target steady-state hours worked, and the real interest rate
 # are no longer sidebar controls.
 theta_N = 0.58
@@ -370,16 +369,16 @@ N_target_pct = 20.0
 BENCH_r_pct = 6.5
 r_pct = BENCH_r_pct
 
-# The paper's benchmark policy scenario (percentages, except θ_G, φ and λ).
+# The default benchmark policy scenario (percentages, except θ_G, φ and λ).
 # Preferences are always calibrated to it, so the same settings always describe
 # the same economy, whatever benchmark a user compares against.
-PAPER_BENCH = dict(f_LS=50.0, f_Y=20.0, f_C=30.0, theta_G=0.10, s_G=20.0,
+DEFAULT_BENCH = dict(f_LS=50.0, f_Y=20.0, f_C=30.0, theta_G=0.10, s_G=20.0,
                    f_IG=20.0, f_GC=50.0, f_GT=30.0, phi=0.10, lam=0.30)
 
 # The benchmark in use: the sidebar's defaults (and Reset target), and the reference
 # point Sections S1 and S2 compare the current settings against. A user can replace
 # it for the rest of their session with "⚙ Benchmark".
-bench = st.session_state.get("bench", PAPER_BENCH)
+bench = st.session_state.get("bench", DEFAULT_BENCH)
 BENCH_f_LS_pct, BENCH_f_Y_pct, BENCH_f_C_pct = bench["f_LS"], bench["f_Y"], bench["f_C"]
 BENCH_theta_G = bench["theta_G"]
 BENCH_s_G_pct = bench["s_G"]
@@ -431,7 +430,7 @@ def benchmark_dialog():
             theta_G=theta_G_b, s_G=s_G_b, f_IG=100 * f_IG / comp_sum,
             f_GC=100 * f_GC / comp_sum, f_GT=100 * f_GT / comp_sum, phi=phi_b, lam=lam_b)
         reset_to_benchmark()
-    if b2.button("Restore the paper's benchmark", use_container_width=True):
+    if b2.button("Restore the default benchmark", use_container_width=True):
         st.session_state.pop("bench", None)
         reset_to_benchmark()
 
@@ -496,8 +495,8 @@ theta_G = st.sidebar.slider(
 # 3. Value of in-kind welfare to households -----------------------------------
 phi = st.sidebar.slider(
     "**C. Value of in-kind welfare Gᶜ, φ**", 0.0, 1.0, BENCH_phi, 0.05,
-    help="Utility is ln(C + φ·Gᶜ) + θ_L·ln(1−N). φ=0: Gᶜ is a pure drain (Baxter & King's "
-         "\"basic purchases\"). φ=1: Gᶜ is a perfect substitute for private consumption, "
+    help="Utility is ln(C + φ·Gᶜ) + θ_L·ln(1−N). φ=0: Gᶜ is a pure drain. "
+         "φ=1: Gᶜ is a perfect substitute for private consumption, "
          "so under lump-sum financing it crowds out C one-for-one and leaves output unchanged.",
     key=wkey("phi"),
 )
@@ -551,7 +550,7 @@ lam = st.sidebar.slider(
          "income each period, pay no income tax, and receive all cash welfare Gᵀ. They "
          "pay the lump-sum tax and the consumption tax like everyone else. Optimizers own "
          "the capital, pay all three taxes, and receive no cash welfare. Both types "
-         "benefit from Gᶜ. λ=0 is the paper's single representative household.",
+         "benefit from Gᶜ. λ=0 is a single representative household.",
     key=wkey("lam"),
 )
 
@@ -600,7 +599,7 @@ BENCH_tax_mix = (BENCH_f_LS_pct / 100.0, BENCH_f_Y_pct / 100.0, BENCH_f_C_pct / 
 # Y = K^θK·(Kᴳ/K̄ᴳ)^θG·N^θN, which is the model's Y = A·K^θK·(Kᴳ)^θG·N^θN with
 # A = K̄ᴳ^(-θG). K̄ᴳ is half the public capital of the benchmark economy without the
 # public-capital effect (θG=0), so the benchmark has Kᴳ/K̄ᴳ > 1 and a higher θG raises
-# output. theta_L is then calibrated in the paper's benchmark itself.
+# output. theta_L is then calibrated in the default benchmark itself.
 @st.cache_data(show_spinner=False)
 def benchmark_calibration(theta_N, delta, r, s_G, f_IG, f_GC, f_GT, tax_mix, N_target,
                            phi, lam, theta_G):
@@ -617,7 +616,7 @@ def benchmark_calibration(theta_N, delta, r, s_G, f_IG, f_GC, f_GT, tax_mix, N_t
     return KG_ref, theta_L_bench
 
 
-P = PAPER_BENCH  # calibrate to the paper's benchmark, whatever benchmark is in use
+P = DEFAULT_BENCH  # calibrate to the default benchmark, whatever benchmark is in use
 KG_ref, theta_L_bench = benchmark_calibration(
     theta_N, delta_pct / 100.0, BENCH_r_pct / 100.0, P["s_G"] / 100.0, P["f_IG"] / 100.0,
     P["f_GC"] / 100.0, P["f_GT"] / 100.0, (P["f_LS"] / 100.0, P["f_Y"] / 100.0, P["f_C"] / 100.0),
@@ -732,7 +731,7 @@ st.write("Exact, closed-form solution of the model's long-run (“great ratios�
          f"θ_G={BENCH_theta_G:.2f}, r={BENCH_r_pct}%, G/Y={BENCH_s_G_pct:.0f}% split into "
          f"{BENCH_f_IG_pct:.0f}% public investment, {BENCH_f_GC_pct:.0f}% in-kind welfare and "
          f"{BENCH_f_GT_pct:.0f}% cash welfare, φ={BENCH_phi:.2f}, hand-to-mouth share "
-         f"λ={BENCH_lam:.2f}; θ_N=0.58 and δ=10% as in Baxter & King) vs. "
+         f"λ={BENCH_lam:.2f}; θ_N=0.58 and δ=10%) vs. "
          "**whatever the sidebar is currently set to**.")
 
 if benchmark_error:
@@ -804,7 +803,7 @@ else:
                                                   T_sim=200)
         render_transition_tabs(
             cumulative_path, wkey("years_to_show_cumulative"), "the benchmark",
-            caption_commodity="Compare to Baxter & King Figures 2-4, but here the "
+            caption_commodity="Here the "
                 "\"shock\" is the *entire* gap between the benchmark and the sidebar's "
                 "current settings, not a single isolated policy lever.",
             caption_labor="Labor and the wage jump immediately to reflect the new "
@@ -1051,7 +1050,7 @@ if multiplier_long_run > 1:
     st.success(
         f"**A one-dollar permanent increase in government spending raises long-run "
         f"output by ≈ ${multiplier_long_run:.2f}.** This exceed-1 "
-        f"multiplier is the paper's central, surprising result: it comes from labor "
+        f"multiplier comes from labor "
         f"supply rising (negative wealth effect), and — if θ_G>0 — public investment "
         f"directly raising the productivity of private capital and labor."
     )
@@ -1073,8 +1072,8 @@ else:
     st.write("Perfect-foresight transition path (log-linearized around the relevant steady "
              "state, solved exactly via eigen-decomposition -- no simulation noise). "
              "All series are % deviations from the *current situation* (the steady state "
-             "set by the sidebar, before the extra rise in G/Y), matching "
-             "Figures 2-4 of the paper. The Inequality and Welfare tabs work as in "
+             "set by the sidebar, before the extra rise in G/Y). "
+             "The Inequality and Welfare tabs work as in "
              "Section S2, with the current situation in place of the benchmark: their "
              "levels come from the model's exact equations along this path.")
     perf_marg = household_outcomes(ss_new if permanent else ss_old, path.state)
@@ -1096,15 +1095,14 @@ else:
 
     render_transition_tabs(
         path, wkey("years_to_show_marginal"), "the current situation",
-        caption_commodity="Compare to Baxter & King Figure 2 (permanent) / Figure 3 "
-            "(temporary war) / Figure 4 (GRH). Watch the investment 'accelerator boom' "
+        caption_commodity="Watch the investment 'accelerator boom' "
             "on impact when the shock is permanent and lump-sum financed.",
         caption_labor="A permanent, lump-sum-financed increase in G is a negative wealth "
             "effect: households work more and consume less, so labor rises and (with "
             "capital predetermined) the wage falls on impact.",
         caption_financial="An unanticipated permanent increase in G should raise short "
             "real rates on impact -- the model's sharpest, most testable empirical "
-            "prediction (Section III.E of the paper).",
+            "prediction.",
         extra_tabs={"Inequality": marg_inequality, "Welfare": marg_welfare},
     )
 
@@ -1228,12 +1226,12 @@ for rows, title, height in (
 
 st.caption(
     "A multiplier above +1.00 for Output means a marginal dollar of government "
-    "spending raises long-run output by more than a dollar -- the paper's central, "
-    "surprising result under lump-sum financing (labor supply rises from the "
+    "spending raises long-run output by more than a dollar. This can happen under "
+    "lump-sum financing (labor supply rises from the "
     "negative wealth effect, and, if θ_G>0, public investment directly raises "
     "productivity). Investment's impact multiplier can be large even when its "
     "long-run multiplier is small: capital 'overshoots' toward the new steady "
-    "state on impact (the accelerator boom, Baxter & King Figure 2), then its net "
+    "state on impact (the accelerator boom), then its net "
     "long-run change is only what is needed to sustain the new higher K."
 )
 
@@ -1255,7 +1253,7 @@ with st.expander("ℹ️ Methodology notes"):
   spending path directly) so no 3-variable generalization of the eigen-decomposition is
   needed.
 - **Tax mix (item A)**: three taxes together raise revenue equal to total government
-  spending G every year, each a fixed share of it (the paper's benchmark: 50% lump-sum, 20% income
+  spending G every year, each a fixed share of it (the default benchmark: 50% lump-sum, 20% income
   tax, 30% consumption tax); their rates adjust year by year so that they do. The
   lump-sum tax is a true non-distorting poll tax. The income tax puts a (1-τʸ) wedge
   on both the labor-leisure and the saving (Euler) margin. The consumption tax puts a
@@ -1272,7 +1270,7 @@ with st.expander("ℹ️ Methodology notes"):
   welfare Gᵀ (transfers paid to households). The three shares are typed in as
   percentages; if they don't add up to 100% they are rescaled proportionally. Iᴳ and
   Gᶜ use up output (Y=C+I+Iᴳ+Gᶜ); Gᵀ only moves income to households. With φ=0, Gᶜ
-  is Baxter & King's pure-drain "basic purchases"; with φ=1 and lump-sum financing it
+  is a pure drain; with φ=1 and lump-sum financing it
   crowds out private consumption one-for-one and leaves output unchanged.
 - **Household types (item F)**: a share λ of households are hand-to-mouth working
   families (no capital, no saving, no income tax, all of the cash welfare Gᵀ); the
@@ -1281,11 +1279,11 @@ with st.expander("ℹ️ Methodology notes"):
   benefit from Gᶜ. Transition paths are linearized *numerically* around the steady
   state; with λ=0 and a single lump-sum or income tax this reproduces the analytic
   linearization. See Appendix A.3-A.4.
-- **S1 (Benchmark vs Now)** compares a benchmark scenario (by default the paper's, which "Set benchmark
+- **S1 (Benchmark vs Now)** compares a benchmark scenario (by default the app's, which "Set benchmark
   economy" can replace: tax revenue 50% lump-sum, 20% income tax, 30% consumption tax; θ_G=0.10, r=6.5%, G/Y=20% split
   20/50/30 into public investment,
   in-kind welfare and cash welfare, φ=0.10, λ=0.3; θ_N=0.58, δ=10% and 20% target
-  hours as in Baxter & King) against whatever the sidebar is *currently*
+  hours) against whatever the sidebar is *currently*
   set to, so every control (tax mix, composition, φ, θ_G, G/Y, household types)
   shows up as a difference there -- including the tax mix alone, since the income-
   and consumption-tax wedges distort households' margins independent of net revenue. Its transition-path
@@ -1311,14 +1309,10 @@ with st.expander("ℹ️ Methodology notes"):
   multiplier ΔX/ΔG -- the change in X per dollar of new government spending -- both
   the long-run multiplier (from the two steady states) and the impact multiplier
   (from year 0 of the transition path) for each.
-- Reported multipliers are close to, but will not exactly reproduce, the point
-  estimates in the paper's Tables 2-4, which are built from a closed-form elasticity
-  approximation (equation 16/16'); this app instead solves the *exact* nonlinear
-  steady state and the *exact* linear saddle path implied by the same first-order
-  conditions.
 
-**Citation:** Baxter, Marianne, and Robert G. King. 1993. "Fiscal Policy in
-General Equilibrium." *American Economic Review* 83 (3): 315-334.
+**Reference:** Baxter, Marianne, and Robert G. King. 1993. "Fiscal Policy in
+General Equilibrium." *American Economic Review* 83 (3): 315-334. The fixed labor share,
+depreciation rate, real interest rate and hours target follow its calibration.
         """
     )
 

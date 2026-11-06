@@ -1,15 +1,13 @@
 """
-Core economics for the Baxter & King (1993, AER) "Fiscal Policy in General
-Equilibrium" neoclassical growth model with government purchases, extended
-with productive public capital (Section VI of the paper) as a first-class
-part of the main model rather than a side extension.
+Core economics of a neoclassical growth model with government spending and
+productive public capital.
 
 The model:
 
   Preferences:      u_t = log(C_t + phi*GC_t) + theta_L * log(L_t),   L_t = 1 - N_t
                      (GC = government consumption; phi in [0,1] is how well it substitutes
-                      for private consumption: phi=0 is a pure drain, as in Baxter-King's
-                      "basic purchases"; phi=1 is a perfect substitute)
+                      for private consumption: phi=0 is a pure drain;
+                      phi=1 is a perfect substitute)
   Technology:        Y_t = A * K_t^theta_K * KG_t^theta_G * N_t^theta_N
                      (theta_K = 1 - theta_N; KG = public capital stock)
   Capital accum.:    K_{t+1}  = (1-delta) K_t  + I_t
@@ -23,8 +21,7 @@ summing to 1) of total government spending G_t every period:
   * lump-sum        -- T_t = f_LS*G_t per person. Purely a wealth effect: it enters
                         no first-order condition.
   * income tax      -- a rate tau_y,t on (optimizers') labor and capital income: a
-                        (1-tau_y) wedge on both the labor-leisure and the saving margin
-                        (the paper's original "distortionary"/GRH channel).
+                        (1-tau_y) wedge on both the labor-leisure and the saving margin.
   * consumption tax -- a rate tau_c,t on private consumption: consumers pay
                         p_t = 1+tau_c,t per unit, a wedge on the labor-leisure margin
                         only (a constant rate leaves the saving margin alone).
@@ -178,7 +175,7 @@ def calibrate_theta_L(theta_N: float, delta: float, r: float, A: float, theta_G:
                        N_target: float, s_GC: float = 0.0, phi: float = 0.0,
                        lam: float = 0.0) -> float:
     """Choose theta_L (weight on leisure) so that steady-state labor input equals
-    N_target, given the other parameters (Table 1 calibration strategy). tax_mix is
+    N_target, given the other parameters. tax_mix is
     anything `_tax_mix` accepts."""
     mix = _tax_mix(tax_mix)
     if lam > 0:
@@ -904,100 +901,3 @@ def consumption_equivalent(bench: dict, target: dict, lam: float, theta_L: float
         lo, hi = np.where(below, mid, lo), np.where(below, hi, mid)
     gains["all"] = np.where(np.isfinite(goal), 100.0 * 0.5 * (lo + hi), np.nan)
     return gains
-
-
-# --------------------------------------------------------------------------
-# 5. Table 4 / Figure 5: public-capital productivity sensitivity
-# --------------------------------------------------------------------------
-
-def public_investment_long_run(theta_N: float, delta: float, r: float, A: float,
-                                 s_other: float, N_target: float,
-                                 theta_G_grid: np.ndarray, s_IG: float = 0.05) -> "dict[str, np.ndarray]":
-    """Replicates Table 4 of Baxter & King (1993): long-run output/consumption/
-    investment effects of a marginal increase in productivity-augmenting public
-    investment IG, for a grid of theta_G, at the paper's calibration:
-      - s_IG = 0.05 fixed (the "share of public investment" the paper studies;
-        NOT tied to the app's live composition slider, which can go to 0% and
-        make the marginal step below numerically ill-posed -- Kᴳ is an *essential*
-        input whenever theta_G>0, so output collapses toward 0 as Kᴳ->0).
-      - s_other -- other, always-unproductive, resource-using government spending
-        (what used to be "basic purchases" G_B before that category was folded
-        into IG in the main model) held fixed, so the baseline total government
-        share matches the sidebar's G/Y setting even though only s_IG of it is
-        the productive investment under study here.
-      - always lump-sum financed, exactly as the paper's Table 4 note states
-        ("In each case, shifts in purchases are financed via lump-sum taxation"),
-        independent of the sidebar's financing choice elsewhere in the app.
-      - theta_L is calibrated once, at theta_G=0, so labor hits N_target at the
-        baseline -- matching the paper's Table 1 calibration strategy.
-
-    Because there is no productivity distinction between IG and s_other at
-    theta_G=0, the theta_G=0 row reproduces the *ordinary* lump-sum government-
-    purchases multiplier from Tables 2-3 (~1.16 in the paper) exactly, not zero
-    -- Baxter & King's own text confirms this ("the first row of the table
-    replicates the results for basic government purchases obtained in Section
-    III above").
-
-    Three cases are returned, all in ΔY/ΔIG-comparable units:
-      direct  -- output effect holding private K,N fixed: theta_G/s_IG
-      k_adj   -- private capital adjusts, labor fixed: direct/(1-theta_K)
-      both    -- both private capital and labor adjust (full GE)
-    """
-    theta_K = 1.0 - theta_N
-
-    # Calibrate theta_L once, at theta_G=0, so labor hits N_target under the
-    # baseline (s_IG + s_other) total government share.
-    supply0 = _supply_side_impl(theta_N, delta, r, A, 0.0, 0.0, s_IG, N_target)
-    s_C0 = 1.0 - supply0["s_I"] - s_IG - s_other
-    if s_C0 <= 0:
-        raise ValueError("Government share too large: steady-state consumption share <= 0.")
-    theta_L = theta_N * (1.0 - N_target) / (s_C0 * N_target)  # tax_factor=1 always (lump-sum)
-    if theta_L <= 0:
-        raise ValueError("Implied theta_L <= 0; adjust N_target or the spending settings.")
-
-    direct = theta_G_grid / s_IG
-    k_adj = direct / (1.0 - theta_K)
-
-    both = np.zeros_like(theta_G_grid)
-    dC = np.zeros_like(theta_G_grid)
-    dI = np.zeros_like(theta_G_grid)
-    for idx, theta_G in enumerate(theta_G_grid):
-        h = min(1e-4, s_IG * 0.05)  # keep the perturbation well inside (0, s_IG)
-        m1 = _public_capital_output(theta_N, theta_K, delta, r, A, s_other, theta_L,
-                                     theta_G, s_IG - h)
-        m2 = _public_capital_output(theta_N, theta_K, delta, r, A, s_other, theta_L,
-                                     theta_G, s_IG + h)
-        both[idx] = (m2["Y"] - m1["Y"]) / (m2["IG"] - m1["IG"])
-        dC[idx] = (m2["C"] - m1["C"]) / (m2["IG"] - m1["IG"])
-        dI[idx] = (m2["I"] - m1["I"]) / (m2["IG"] - m1["IG"])
-
-    return dict(theta_G=theta_G_grid, direct=direct, k_adj=k_adj, both=both, dC=dC, dI=dI)
-
-
-def _public_capital_output(theta_N, theta_K, delta, r, A, s_other, theta_L, theta_G, s_IG):
-    """Steady state of the model with productive public capital, at a given (theta_G,
-    s_IG), used for the numerical-derivative Table 4 computation. Always lump-sum
-    financed (tax_factor=1), matching the paper's Table 4. s_other is other,
-    always-unproductive, resource-using government spending held fixed (see
-    `public_investment_long_run`'s docstring)."""
-    tau = s_IG + s_other
-    N = 0.3
-    supply = None
-    for _ in range(200):
-        supply = _supply_side_impl(theta_N, delta, r, A, 0.0, theta_G, s_IG, N)
-        s_I = supply["s_I"]
-        s_C = 1.0 - s_I - s_IG - s_other
-        if s_C <= 0:
-            s_C = 1e-6
-        N_new = theta_N / (theta_L * s_C + theta_N)
-        if abs(N_new - N) < 1e-12:
-            N = N_new
-            break
-        N = N_new
-    Y = supply["alpha"] * N
-    K = supply["kappa"] * N
-    KG = supply["KG"] * N
-    C = s_C * Y
-    I = s_I * Y
-    IG = s_IG * Y
-    return dict(Y=Y, C=C, I=I, IG=IG, K=K, KG=KG, N=N)

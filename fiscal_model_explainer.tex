@@ -20,9 +20,9 @@
 
 \newcommand{\eq}[1]{\begin{equation}#1\end{equation}}
 
-\title{Fiscal Policy in General Equilibrium:\\
+\title{The Fiscal Policy Simulator:\\
 Model Specification and Worked Cases\\
-\large A companion to the Baxter \& King (1993) replication app}
+\large A companion to the app}
 \author{}
 \date{}
 
@@ -31,11 +31,9 @@ Model Specification and Worked Cases\\
 
 \begin{abstract}
 \noindent This document is written for undergraduates using the interactive
-app at \url{https://profguclass.github.io/baxter-king-fiscal-app/} to explore Baxter \& King
-(1993, \textit{American Economic Review}), ``Fiscal Policy in General
-Equilibrium.'' Part I lays out the full model the app solves: preferences,
-technology (including the Section VI extension for productive public
-capital), the government's budget, the household's optimality conditions,
+app at \url{https://profguclass.github.io/baxter-king-fiscal-app/} to explore how taxes and
+government spending shape the economy. Part I lays out the full model the app solves: preferences,
+technology (including productive public capital), the government's budget, the household's optimality conditions,
 the closed-form steady state, the log-linear transition dynamics, and how
 the app's four sections (S1--S4, in two parts) map onto that math. Part II works
 through seven cases that are easy to get wrong intuitively --- why a
@@ -74,7 +72,7 @@ $G^T_t$ & Lump-sum government transfers \\
 $w_t,\ r_t$ & Real wage and real rental rate on capital \\
 $\tau_t$ & Tax rate \\
 $\theta_N,\ \theta_K=1-\theta_N$ & Labor's and capital's shares of income \\
-$\theta_G$ & Productivity of public capital (Section VI extension) \\
+$\theta_G$ & Productivity of public capital \\
 $\theta_L$ & Weight on leisure in utility (calibrated, not a free parameter) \\
 $\delta$ & Depreciation rate (same for $K$ and $K^G$) \\
 $A$ & Total factor productivity, normalized to $1$ \\
@@ -113,12 +111,11 @@ model is therefore always exactly two pieces: $G = I^G + G^T$.
 
 \eq{ Y_t = A\,K_t^{\theta_K}\,(K^G_t)^{\theta_G}\,N_t^{\theta_N}, \qquad \theta_K=1-\theta_N }
 
-Output is Cobb--Douglas in private capital and labor, exactly as in the
-paper's baseline model. The Section VI extension (and the app's $\theta_G$
-slider) adds public capital $K^G_t$ as a third input: it raises the
+Output is Cobb--Douglas in private capital and labor, with public capital
+$K^G_t$ (the app's $\theta_G$ slider) as a third input: it raises the
 productivity of every private input, without the government paying for it
 again next period --- a non-rival ``public good'' flavor. Setting
-$\theta_G=0$ collapses this exactly to the paper's baseline model, where
+$\theta_G=0$ removes this channel, so that
 public investment is a pure resource cost with \emph{no} productivity
 effect. Note that $\theta_K+\theta_N=1$ (constant returns to scale in
 $(K,N)$ alone) but $\theta_G$ is \emph{extra}: when $\theta_G>0$ the
@@ -223,8 +220,7 @@ the investment share:
 
 $\theta_L$ itself is not a free parameter: it is \emph{calibrated} once, at
 a chosen baseline policy, so that steady-state $N$ matches a target
-hours-worked share (the paper's Table 1 strategy, and $N_{\text{target}}=20\%$
-in the app). Holding that calibrated $\theta_L$ fixed while comparing two
+hours-worked share ($N_{\text{target}}=20\%$ in the app). Holding that calibrated $\theta_L$ fixed while comparing two
 different policies is what lets $N$ move \emph{honestly} in response to a
 policy change, rather than being pinned back to the target by construction.
 
@@ -267,7 +263,7 @@ of in-kind welfare to households $\varphi$; D, total government spending
 whether a change in $G/Y$ is permanent or temporary); E, the composition of
 $G$ (public investment, in-kind welfare, cash welfare); and F, the share
 $\lambda$ of hand-to-mouth households. The real interest rate is fixed at
-$r=6.5\%$, with $\theta_N=0.58$ and $\delta=10\%$ as in Baxter \& King.
+$r=6.5\%$, with $\theta_N=0.58$ and $\delta=10\%$.
 
 \subsection{Part I, S1: Benchmark vs Now}
 
@@ -389,8 +385,8 @@ permanent increase: under a temporary one the economy returns to the
 current situation, so only the impact column depends on item D.3 (the app
 notes this when D.3 is Temporary). A
 multiplier above $+1$ for output means a marginal dollar of spending
-raises long-run output by \emph{more} than a dollar, the paper's central
-result; investment's impact multiplier can be large even when its long-run
+raises long-run output by \emph{more} than a dollar;
+investment's impact multiplier can be large even when its long-run
 multiplier is small, since capital only needs to move once to reach the
 new steady state (the ``accelerator boom'').
 
@@ -619,8 +615,8 @@ back to the two well-defined steady states (Section~\ref{sec:steadystate}
 never requires saddle-path stability --- only the \emph{transition}
 between them does) and shows a scoped warning. The long-run comparisons
 and long-run multiplier ($\Delta Y/\Delta G$ from the two steady states
-directly) remain exact and valid; only the transition-path chart, the
-impact multiplier, and the duration-sensitivity replication are skipped,
+directly) remain exact and valid; only the transition-path chart and the
+impact multiplier are skipped,
 since they need a well-defined path from one steady state to the other.
 There is no single ``safe'' $G/Y$ cutoff to quote in class --- the
 threshold depends on financing \emph{and} composition jointly, as the
@@ -819,8 +815,8 @@ total burden than the permanent one.
 \textbf{Where to see this live.} Set item D.3 to Temporary, vary the
 number of years, and read the impact output multiplier in S4
 (Section~\ref{sec:panels}); setting D.3 to Permanent gives the
-permanent-shock reference value. Baxter \& King make exactly this point in their
-Section~IV, calling it the opposite of the ``Barro--Hall'' intuition that
+permanent-shock reference value. Baxter \& King (1993, Section~IV) make this
+point, calling it the opposite of the ``Barro--Hall'' intuition that
 temporary fiscal shocks should matter less than permanent ones. It is
 the model's own version of ``forward guidance'' in modern monetary
 policy language: how long a policy is \emph{expected to last} changes
@@ -1122,13 +1118,17 @@ $N$:
 \begin{notebox}
 \textbf{Where does $\theta_L$ come from?} $\theta_L$ is not observed
 directly; it is \emph{calibrated} by inverting the boxed $N$-equation at a
-chosen baseline policy and a target hours-worked share $N_{\text{target}}$
-(Baxter \& King's Table~1 strategy). Solving the income-tax $N$-equation
+chosen baseline policy and a target hours-worked share $N_{\text{target}}$.
+Solving the income-tax $N$-equation
 for $\theta_L$ instead of $N$:
 \eq{ \theta_L = \frac{(1-\tau)\,\theta_N\,(1-N_{\text{target}})}{s_C\,N_{\text{target}}}, }
 and analogously without the $(1-\tau)$ factor under lump-sum. This is
 exactly \texttt{calibrate\_theta\_L} in the code: it is the \emph{same}
 equation as Step 3 above, just solved for the other unknown.
 \end{notebox}
+
+\section*{Reference}
+\noindent Baxter, Marianne, and Robert G. King. 1993. ``Fiscal Policy in General Equilibrium.'' \textit{American Economic Review} 83 (3): 315--334.
+The app's fixed labor share, depreciation rate, real interest rate and hours target follow its calibration.
 
 \end{document}

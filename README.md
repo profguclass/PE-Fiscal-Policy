@@ -1,85 +1,104 @@
-# Fiscal Policy in General Equilibrium — a classroom simulator
+# Fiscal Policy Simulator — a classroom tool
 
-An interactive replication of **Baxter, Marianne, and Robert G. King. 1993.
-"Fiscal Policy in General Equilibrium." *American Economic Review* 83(3):
-315–334.**
+An interactive general-equilibrium model for teaching public economics.
+Students choose how a government taxes and what it spends on, then see the
+effects on output, hours, capital, tax rates, inequality and welfare, both in
+the long run and year by year along the transition.
 
-The paper's core model is a one-sector neoclassical growth model with
-government purchases: representative-agent preferences over consumption and
-leisure, Cobb-Douglas production with variable labor *and* endogenous
-capital accumulation, and a government budget that can be financed either by
-lump-sum taxation or by a distortionary balanced-budget tax rule. Students
-can move any structural parameter or fiscal-policy setting and immediately
-see the effect on the economy's steady state and its transition path.
+**Open the app:** <https://profguclass.github.io/baxter-king-fiscal-app/>
+
+## What students can change
+
+| Sidebar item | Setting |
+|---|---|
+| A | Tax mix: the shares of revenue from the lump-sum, income and consumption taxes |
+| B | Public-capital productivity, θ_G |
+| C | How much households value in-kind welfare, φ |
+| D | Size of government, G/Y (D.1), a further rise in G/Y (D.2) and how long that rise lasts (D.3) |
+| E | Composition of spending: public investment, in-kind welfare and cash welfare |
+| F | Share of hand-to-mouth households, λ |
+
+The benchmark economy raises revenue 50% lump-sum, 20% income tax and 30%
+consumption tax, with G/Y = 20% split 20/50/30 across public investment, in-kind
+welfare and cash welfare, θ_G = 0.10, φ = 0.10 and λ = 0.30. Users can replace
+this benchmark with their own.
+
+## What the app shows
+
+**Part I. The benchmark vs the sidebar's settings**
+
+- **S1. Benchmark vs Now:** steady-state levels and % changes, with the
+  transition path from the benchmark to the current settings.
+- **S2. Growth, inequality, and welfare over time:** year-by-year growth,
+  incomes and hours by household type, inequality (including a two-group Gini)
+  and consumption-equivalent welfare.
+
+**Part II. The Effect of Raising G/Y**
+
+- **S3. Now vs After raising G/Y, in levels and over time:** the effect of more
+  spending starting from the current settings, with everything else held fixed.
+- **S4. Now vs After raising G/Y, per dollar of new spending:** long-run and
+  impact multipliers (ΔX/ΔG) for the same experiment.
+
+An Appendix, opened in a separate window, tells the model agent by agent, with
+the equations in boxes.
+
+## The model, briefly
+
+- **Households.** A share λ are hand-to-mouth: they own no capital, do not save,
+  pay no income tax and receive all of the cash welfare. The rest are optimizers:
+  they own the capital and pay the income tax. Everyone pays the lump-sum and
+  consumption taxes. Utility is `ln(C + φ·Gᶜ) + θ_L·ln(1 − N)`.
+- **Production.** Cobb-Douglas in private capital, labor and public capital, which
+  raises productivity when θ_G > 0.
+- **Government.** The three taxes together raise revenue equal to total spending
+  every year, each a fixed share of it, so their rates adjust year by year. The
+  lump-sum tax distorts nothing. The income tax distorts both work and saving. The
+  consumption tax distorts work only, as long as its rate stays constant over time.
+- **Spending.** Public investment accumulates into public capital. In-kind welfare
+  uses up output and is valued by households through φ. Cash welfare only moves
+  income to households.
+- **Solution.** Steady states are solved exactly. Transition paths come from
+  log-linearizing around the steady state and solving the saddle path by
+  eigen-decomposition. With λ > 0, the linearization is numerical.
+- **Inequality and welfare.** Each year's levels come from solving the static
+  equations exactly along the path. Welfare is discounted with β = 1/(1+r), adds up
+  the years shown ("Years to display", 50 by default) and counts the last year for
+  every year after that.
+
+The labor share (θ_N = 0.58), depreciation (δ = 10%), real interest rate (r = 6.5%)
+and target hours (20% of time) are fixed.
 
 ## What's inside
 
 | File | Purpose |
 |---|---|
-| `fiscal_model.py` | The economics: closed-form steady-state solver, exact log-linear transition-path solver (eigen-decomposition / saddle-path method), and the Section VI productive-public-capital extension. No UI code. |
-| `app.py` | The Streamlit front end: sliders for every structural and policy parameter, steady-state comparison table/chart, transition-path charts (commodity / labor / financial markets), a duration-sensitivity panel (Table 3 style), and a productive-public-investment panel (Table 4 style). |
-| `appendix.py` | The Appendix (the model told agent by agent, with the equations in boxes), opened in a separate window via `?view=appendix`. |
-| `test_model.py` | Sanity checks against the numbers reported in the paper's Tables 1–4 and Figures 2–5. |
+| `fiscal_model.py` | The economics: steady-state and transition-path solvers. No UI code. |
+| `app.py` | The Streamlit front end: the sidebar controls and Sections S1–S4. |
+| `appendix.py` | The Appendix, shown on its own page via `?view=appendix`. |
 | `build_stlite.py` | Packages the app into `docs/` for GitHub Pages. |
 | `docs/` | The published site (generated; do not edit by hand). |
+| `test_model.py` | Internal consistency checks on the model. |
+| `fiscal_model_explainer.tex` / `.pdf` | A written guide to the model and the app. |
+| `fiscal_model_code_walkthrough.tex` / `.pdf` | A walkthrough of the code. |
 
 ## The website
 
-The app is published with GitHub Pages at
-<https://profguclass.github.io/baxter-king-fiscal-app/> (Settings > Pages >
-main branch, `/docs` folder). There is no server: GitHub only serves the
-files, and each student's browser downloads a Python runtime
+The app is published with GitHub Pages (Settings > Pages > main branch, `/docs`
+folder). There is no server: GitHub only serves the files, and each student's
+browser downloads a Python runtime
 ([stlite](https://github.com/whitphx/stlite)) and runs the app itself.
 
-After changing `app.py`, `appendix.py` or `fiscal_model.py`, rebuild and
-preview:
+After changing `app.py`, `appendix.py` or `fiscal_model.py`, rebuild and preview:
 
 ```bash
 python build_stlite.py
 python -m http.server 8000 --directory docs
 ```
 
-Then open `http://localhost:8000`, and commit and push `docs/` along with
-the changed source files.
+Then open `http://localhost:8000`, and commit and push `docs/` along with the
+changed source files.
 
-## The economics, briefly
+## Reference
 
-- **Steady state** is solved in closed form (no numerical root-finding): the
-  capital/labor ratio, wage, and rental rate are pinned down by the supply
-  side alone (independent of labor input), and labor supply is then solved
-  from the consumption/leisure first-order condition given the government's
-  claim on resources.
-- **Transition dynamics** use the standard log-linearization around a
-  steady state. The equilibrium has exactly one predetermined variable
-  (capital) and one forward-looking "jump" variable (consumption), so it is
-  saddle-path stable. The app solves this **exactly** via eigen-decomposition
-  of the reduced-form transition matrix (the King–Plosser–Rebelo /
-  Blanchard–Kahn approach), rather than a naive forward "shooting"
-  simulation — the latter is numerically unstable here because the unstable
-  root gets iterated many times, amplifying floating-point noise
-  geometrically.
-- **Two financing rules** replicate the paper's central finding that *how*
-  a spending increase is financed matters more than its direct resource
-  cost:
-  - *Lump-sum*: the tax rate is held fixed; transfers absorb the government
-    budget residually. Permanent increases in G typically raise long-run
-    output by *more* than one-for-one (multiplier > 1) because higher labor
-    supply raises the marginal product of capital and pulls in additional
-    private investment.
-  - *Distortionary / balanced-budget ("GRH")*: the tax rate is reset every
-    period to `G_t / Y_t`. The added tax wedge on labor and capital income
-    typically makes the multiplier **negative** — output falls by more than
-    the dollar value of the new spending.
-- **Productive public capital** (Section VI extension, exposed as a bonus
-  panel) lets government investment directly raise the marginal product of
-  private capital and labor, generating long-run multipliers far above 1
-  even for modest values of the public-capital productivity parameter.
-
-Because the app solves the *exact* nonlinear steady state and the *exact*
-linear saddle path (rather than the paper's closed-form elasticity
-approximation, its equation 16/16'), multiplier values will be close to,
-but will not exactly reproduce, the specific point estimates in the paper's
-Tables 2–4. The qualitative patterns — multiplier > 1 with lump-sum
-financing, multiplier < 0 under GRH, more persistent shocks producing
-larger short-run effects, productive public capital dramatically amplifying
-long-run output — all replicate closely.
+Baxter, Marianne, and Robert G. King. 1993. "Fiscal Policy in General Equilibrium." *American Economic Review* 83 (3): 315-334. The fixed labor share, depreciation rate, real interest rate and hours target above follow its calibration.

@@ -48,12 +48,10 @@ Every Line of Code and Its Mathematics}
 
 \begin{abstract}
 \noindent This document explains \emph{every} line of \texttt{fiscal\_model.py}
---- the model behind the Streamlit app that replicates and extends Baxter \&
-King (1993, \textit{AER}), ``Fiscal Policy in General Equilibrium'' ---
+--- the model behind the Streamlit fiscal policy app ---
 pairing each statement with the exact mathematical object it represents,
-cited as \textbf{L}$n$ for line $n$. The model goes beyond the paper's
-baseline in one respect the app exposes as a first-class control:
-\textbf{productive public capital} (the paper's Section VI extension), with
+cited as \textbf{L}$n$ for line $n$. One feature the app exposes as a first-class control is
+\textbf{productive public capital}, with
 production $Y_t=AK_t^{\theta_K}(K^G_t)^{\theta_G}N_t^{\theta_N}$. There is no
 separate ``basic purchases'' category (it was removed, since the utility
 function never values government consumption directly): total government
@@ -64,10 +62,7 @@ the household's Euler equation and labor-leisure condition, the
 Blanchard--Kahn/King--Plosser--Rebelo saddle-path solution via
 eigendecomposition, and the \emph{nested} fixed-point iterations needed once
 public capital is productive), that derivation is carried out here from the
-model's first-order conditions, term by term. Section~\ref{sec:table4}
-additionally documents \texttt{public\_investment\_long\_run}'s replication
-of the paper's actual Table 4 (verified line-for-line against the published
-table).
+model's first-order conditions, term by term.
 \end{abstract}
 
 \tableofcontents
@@ -85,7 +80,7 @@ Y_t &= C_t+I_t+I^G_t \tag{resource constraint}\\
 with two financing rules for a change in total government spending: both set
 $\tau_t$ by the \emph{same} formula above; they differ only in whether that
 tax is a genuine wedge on the household's factor income
-(\textbf{income\_tax}, the paper's original ``distortionary''/GRH channel)
+(\textbf{income\_tax})
 or leaves it untouched (\textbf{lump\_sum}, a non-distorting poll tax for
 the same revenue). Two solution objects are provided: an exact closed-form
 \texttt{steady\_state} (Section~\ref{sec:ss}) and a log-linearized
@@ -1160,229 +1155,7 @@ return PolicyExperiment(ss_old=ss_old, ss_new=ss_new, path=path,
 \texttt{PolicyExperiment}.
 \end{itemize}
 
-\section{\texttt{public\_investment\_long\_run}: replicating the paper's actual Table 4 (L496--L558)}
-\label{sec:table4}
-
-This section was rewritten after reading Baxter \& King's Table 4 (their
-page 330) directly, and verified line-for-line against the published
-numbers. The paper's own note under the table states its exact
-methodology, which the code now follows precisely:
-
-\begin{itemize}
-\item Public investment is fixed at $s_{I^G}=0.05$ throughout the whole
-table --- \textbf{not} tied to the app's live composition slider elsewhere
-(which can go to $0\%$).
-\item ``In each case, shifts in purchases are financed via lump-sum
-taxation'' --- Table 4 is \emph{always} lump-sum, regardless of the
-sidebar's financing toggle.
-\item At $\theta_G=0$, the paper's own row reads $\Delta Y/\Delta I^G=1.16$,
-\emph{not} $0$: ``the first row of the table replicates the results for
-basic government purchases obtained in Section III above'' (the ordinary
-lump-sum multiplier). There is no productivity distinction between $I^G$
-and other government spending at $\theta_G=0$, so a marginal dollar of
-either has the identical negative-wealth-effect labor-supply response.
-\end{itemize}
-
-\begin{notebox}
-\textbf{Why a small, live-slider-driven $s_{I^G}$ blew up.} An earlier
-version of this function set $s_{I^G}=\max(f_{IG}\cdot s_G,\,10^{-4})$,
-tied to the sidebar's composition slider, and perturbed it by
-$h=10^{-4}$ for the finite difference. When the slider was at $0\%$, this
-forced $s_{I^G}-h$ to land at (or below) $0$ exactly. But $K^G$ is an
-\emph{essential} input in the production function whenever $\theta_G>0$
-(it enters multiplicatively, $Y\propto(K^G)^{\theta_G}$): as $K^G\to0$,
-$Y\to0$ \emph{regardless of $K,N$}. The two finite-difference evaluation
-points ($s_{I^G}\mp h$) straddled this singularity, producing wildly
-different $\alpha$ values on each side and a finite difference that
-exploded to values in the billions for large $\theta_G$. The fix
-(L502--L537) hardcodes $s_{I^G}=0.05$ (safely away from $0$) independent of
-any sidebar control, exactly matching the paper's own fixed calibration
-choice.
-\end{notebox}
-
-\begin{lstlisting}[firstnumber=496]
-def public_investment_long_run(theta_N: float, delta: float, r: float, A: float,
-                                 s_other: float, N_target: float,
-                                 theta_G_grid: np.ndarray, s_IG: float = 0.05) -> "dict[str, np.ndarray]":
-\end{lstlisting}
-\begin{itemize}
-\item[\textbf{L496--L498}] Signature: \texttt{s\_other} is other,
-always-unproductive, resource-using government spending held fixed ---
-what used to be the separate ``basic purchases'' $G_B$ category before it
-was folded into $I^G$ in the main model (Section~\ref{sec:supply}).
-Reintroducing it \emph{here specifically} (not in the main model) is what
-lets this table replicate the paper's actual setup: a baseline total
-government share (matching the sidebar's $G/Y$) of which only $s_{I^G}=0.05$
-is the productive investment under study, and the rest ($s_{\text{other}}$)
-remains inert at every $\theta_G$ on the grid. \texttt{N\_target} replaces
-an earlier \texttt{theta\_L} parameter --- $\theta_L$ is calibrated
-\emph{inside} this function (L531--L538) rather than by the caller, since
-its calibration is specific to this table's own $(s_{IG},s_{\text{other}})$
-split and would otherwise require a second, easy-to-mismatch calibration
-call in \texttt{app.py}.
-\end{itemize}
-
-\textbf{Deriving \texttt{direct} and \texttt{k\_adj} (L542--L543).} Holding
-private capital and labor fixed, net output $Y-I^G$ is maximized when
-$s_{I^G}=\theta_G$ (``zero net resource use''); more generally,
-\eq{ \frac{dY}{dI^G}\bigg|_{K,N\text{ fixed}} = \frac{\partial Y}{\partial K^G}\cdot\frac{dK^G}{dI^G}
-   = \left(\theta_G\frac{Y}{K^G}\right)\cdot\frac{1}{\delta} = \frac{\theta_G}{s_{I^G}} }
-(using $K^G\delta=I^G=s_{I^G}Y$ at steady state). \textbf{This is the fix
-verified against the paper}: an earlier version of this code used
-\texttt{direct = theta\_G\_grid} directly (i.e.\ $\theta_G$ alone, implicitly
-assuming $s_{I^G}=1$), which does not match the paper's reported ratios at
-all (e.g.\ at $\theta_G=0.05$ the paper reports direct effect $=1.00$, not
-$0.05$). With $1/(1-\theta_K)$ the standard capital-deepening amplification
-factor for letting $K$ (but not $N$) adjust:
-\eq{ \texttt{direct} = \frac{\theta_G}{s_{I^G}}, \qquad \texttt{k\_adj} = \frac{\texttt{direct}}{1-\theta_K}. }
-Both are now verified to match the paper's Table 4 exactly (e.g.\
-$\theta_G=0.05\Rightarrow\text{direct}=1.00,\ \text{k\_adj}=1.72$;
-$\theta_G=0.40\Rightarrow\text{direct}=8.00,\ \text{k\_adj}=13.79$).
-
-\begin{lstlisting}[firstnumber=529]
-theta_K = 1.0 - theta_N
-
-tau0 = s_IG + s_other
-supply0 = _supply_side_impl(theta_N, delta, r, A, tau0, 0.0, s_IG, False, N_target)
-s_C0 = 1.0 - supply0["s_I"] - s_IG - s_other
-if s_C0 <= 0:
-    raise ValueError("Government share too large: steady-state consumption share <= 0.")
-theta_L = theta_N * (1.0 - N_target) / (s_C0 * N_target)  # tax_factor=1 always (lump-sum)
-if theta_L <= 0:
-    raise ValueError("Implied theta_L <= 0; adjust N_target or the spending settings.")
-
-direct = theta_G_grid / s_IG
-k_adj = direct / (1.0 - theta_K)
-\end{lstlisting}
-\begin{itemize}
-\item[\textbf{L529}] $\theta_K=1-\theta_N$, computed directly rather than
-via a full \texttt{steady\_state} call (this function never needs a
-\texttt{SteadyState} object, only $\theta_K$).
-\item[\textbf{L532--L534}] Calibrates $\theta_L$ once, at $\theta_G=0$
-(the ``direct effect'' baseline, always lump-sum so \texttt{tax\_factor}$=1$),
-so labor hits \texttt{N\_target} under the total baseline share
-$\tau_0=s_{I^G}+s_{\text{other}}$ --- an inlined version of
-\texttt{calibrate\_theta\_L} (Section~\ref{sec:calib}) specialized to
-this table's $s_C=1-s_I-s_{IG}-s_{\text{other}}$ formula (which the main
-\texttt{calibrate\_theta\_L} cannot express, since it has no
-$s_{\text{other}}$ concept). Since $\theta_G=0$ here, $N=$\texttt{N\_target}
-is passed to \texttt{\_supply\_side\_impl} but the $N^{\theta_G}$ term of
-Section~\ref{sec:kgfixedpoint} is inert ($N^0=1$), so no outer fixed point
-is needed for this particular call.
-\item[\textbf{L536--L537}] Guards against infeasible calibration.
-\item[\textbf{L542--L543}] Implements the closed-form \texttt{direct} and
-\texttt{k\_adj} formulas above.
-\end{itemize}
-
-\begin{lstlisting}[firstnumber=545]
-both = np.zeros_like(theta_G_grid)
-dC = np.zeros_like(theta_G_grid)
-dI = np.zeros_like(theta_G_grid)
-for idx, theta_G in enumerate(theta_G_grid):
-    h = min(1e-4, s_IG * 0.05)  # keep the perturbation well inside (0, s_IG)
-    m1 = _public_capital_output(theta_N, theta_K, delta, r, A, s_other, theta_L,
-                                 theta_G, s_IG - h)
-    m2 = _public_capital_output(theta_N, theta_K, delta, r, A, s_other, theta_L,
-                                 theta_G, s_IG + h)
-    both[idx] = (m2["Y"] - m1["Y"]) / (m2["IG"] - m1["IG"])
-    dC[idx] = (m2["C"] - m1["C"]) / (m2["IG"] - m1["IG"])
-    dI[idx] = (m2["I"] - m1["I"]) / (m2["IG"] - m1["IG"])
-
-return dict(theta_G=theta_G_grid, direct=direct, k_adj=k_adj, both=both, dC=dC, dI=dI)
-\end{lstlisting}
-\begin{itemize}
-\item[\textbf{L549}] $h=\min(10^{-4},\,0.05\,s_{I^G})$ --- with
-$s_{I^G}=0.05$ fixed, this evaluates to $h=2.5\times10^{-4}$ by default,
-but the $0.05\,s_{I^G}$ cap is a defensive measure: it guarantees the
-perturbation always stays a small \emph{fraction} of $s_{I^G}$ itself
-(rather than a fixed absolute step that could exceed $s_{I^G}$ if this
-function were ever called with a smaller custom $s_{I^G}$), keeping both
-evaluation points $s_{I^G}\mp h$ safely on the same side of the
-$K^G\to0$ singularity discussed above.
-\item[\textbf{L550--L556}] \textbf{Column (iv--vi), full general
-equilibrium} (both $K$ and $N$ adjust): a \textbf{numerical derivative} ---
-the exact nonlinear steady state at $s_{I^G}\mp h$, forming the centered
-finite difference $\Delta Y/\Delta I^G\approx(Y_2-Y_1)/(I^G_2-I^G_1)$ (and
-likewise for $C,I$). Built from two calls to the closed-form
-\texttt{\_public\_capital\_output} solver, so it never suffers a
-root-finder's convergence failure --- only the (now-fixed) evaluation-point
-singularity discussed above.
-\item[\textbf{L558}] Returns all five series plus the grid, for the app to
-tabulate.
-\end{itemize}
-
-\section{\texttt{\_public\_capital\_output}: a lean steady-state solve for Table 4 (L561--L587)}
-
-\begin{lstlisting}[firstnumber=561]
-def _public_capital_output(theta_N, theta_K, delta, r, A, s_other, theta_L, theta_G, s_IG):
-    tau = s_IG + s_other
-    N = 0.3
-    supply = None
-    for _ in range(200):
-        supply = _supply_side_impl(theta_N, delta, r, A, tau, theta_G, s_IG, False, N)
-        s_I = supply["s_I"]
-        s_C = 1.0 - s_I - s_IG - s_other
-        if s_C <= 0:
-            s_C = 1e-6
-        N_new = theta_N / (theta_L * s_C + theta_N)
-        if abs(N_new - N) < 1e-12:
-            N = N_new
-            break
-        N = N_new
-    Y = supply["alpha"] * N
-    K = supply["kappa"] * N
-    KG = supply["KG"] * N
-    C = s_C * Y
-    I = s_I * Y
-    IG = s_IG * Y
-    return dict(Y=Y, C=C, I=I, IG=IG, K=K, KG=KG, N=N)
-\end{lstlisting}
-\begin{itemize}
-\item[\textbf{L561}] Signature: a lean, single-purpose steady-state solve
-(deliberately not routed through the general \texttt{steady\_state}
-function, both to avoid dataclass-construction overhead in this
-per-grid-point, per-perturbation inner loop, and because it needs the
-$s_{\text{other}}$ resource-constraint term that \texttt{steady\_state}
-cannot express). \textbf{Always lump-sum} (\texttt{distortionary} is not a
-parameter at all --- hardcoded to \texttt{False} throughout, since the
-paper's Table 4 always is, independent of the sidebar's financing toggle
-elsewhere in the app).
-\item[\textbf{L567}] $\tau=s_{IG}+s_{\text{other}}$, the total government
-share for this cross-section.
-\end{itemize}
-
-\begin{notebox}
-\textbf{L568--L580: this function, too, now needs an outer fixed point on
-$N$.} Unlike the direct/k\_adj formulas above, this function is called
-with $\theta_G$ ranging over the whole grid, including strictly positive
-values --- so \texttt{\_supply\_side\_impl}'s $N^{\theta_G}$ term
-(Section~\ref{sec:kgfixedpoint}) is \emph{not} inert here, and $N$ is not
-known in advance the way it was for the single $\theta_G=0$ calibration
-call above. The fix is the same outer loop as \texttt{steady\_state}
-(Section~\ref{sec:ss}): guess $N$ (L568, starting from $N=0.3$), compute
-the supply side at that guess (L571), derive the lump-sum labor-leisure
-implied $N_{\text{new}}$ (L576), and repeat until convergence (L577--L580).
-Without this outer loop, every $\theta_G>0$ row of Table~4's ``both''/
-\texttt{dC}/\texttt{dI} columns (the finite-difference general-equilibrium
-columns) would have silently used a stale, incorrect $N$ inside the
-$N^{\theta_G}$ term, corrupting the very numbers Section~\ref{sec:table4}
-was rewritten to match against the published paper.
-\end{notebox}
-
-\begin{itemize}
-\item[\textbf{L570--L580}] The outer loop, up to $200$ iterations,
-structurally identical to \texttt{steady\_state}'s (Section~\ref{sec:ss}).
-\item[\textbf{L572--L575}] $s_C=1-s_I-s_{IG}-s_{\text{other}}$ --- both
-resource-using categories reduce the consumption share; floored at a tiny
-positive number rather than raising, so the finite-difference step in
-\texttt{public\_investment\_long\_run} never crashes even at the edge of
-feasibility.
-\item[\textbf{L576}] $N_{\text{new}}=\theta_N/(\theta_L s_C+\theta_N)$ ---
-the lump-sum labor-supply formula (no \texttt{tax\_factor}, since it is
-always $1$ here), identical in form to \texttt{steady\_state}'s L180 with
-$\text{tax\_factor}=1$.
-\item[\textbf{L581--L587}] Computes and returns $Y,K,K^G,C,I,I^G,N$ at the
-converged $N$.
-\end{itemize}
+\section*{Reference}
+\noindent Baxter, Marianne, and Robert G. King. 1993. ``Fiscal Policy in General Equilibrium.'' \textit{American Economic Review} 83 (3): 315--334.
 
 \end{document}
