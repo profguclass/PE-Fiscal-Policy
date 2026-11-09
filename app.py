@@ -593,7 +593,7 @@ BENCH_tax_mix = (BENCH_f_LS_pct / 100.0, BENCH_f_Y_pct / 100.0, BENCH_f_C_pct / 
 # recalibrated its own theta_L, hours would always land back on exactly N_target by
 # construction, silently masking any real labor-supply response to composition/
 # financing/θ_G/r/φ/λ. Holding theta_L fixed lets N move honestly, and makes
-# Section S3's starting point the same as Section S1's "Current settings".
+# Section S3's starting point the same as Section S1's column (B).
 #
 # Public capital enters production relative to a fixed reference level K̄ᴳ,
 # Y = K^θK·(Kᴳ/K̄ᴳ)^θG·N^θN, which is the model's Y = A·K^θK·(Kᴳ)^θG·N^θN with
@@ -737,7 +737,9 @@ st.write("Exact, closed-form solution of the model's long-run (“great ratios�
 if benchmark_error:
     st.error(f"Could not compute the benchmark steady state: {benchmark_error}")
 else:
-    bench_left_label, bench_right_label = "Benchmark scenario", "Current settings"
+    bench_left_label = "(A) Benchmark's initial equilibrium"
+    bench_right_label = "(B) Current settings' long-run equilibrium"
+    bench_pct_label = "(B-A) % change"
 
     bench_table = pd.DataFrame({
         "Variable": ["Output Y", "Consumption C", "Investment I", "Private capital K",
@@ -762,8 +764,8 @@ else:
             bench_right_label: [ss_current.CO, ss_current.CH, ss_current.NO * 100, ss_current.NH * 100],
         })], ignore_index=True)
     bench_both_zero = (bench_table[bench_left_label] == 0) & (bench_table[bench_right_label] == 0)
-    bench_table["% change"] = 100 * (bench_table[bench_right_label] / bench_table[bench_left_label].replace(0, np.nan) - 1)
-    bench_table.loc[bench_both_zero, "% change"] = 0.0
+    bench_table[bench_pct_label] = 100 * (bench_table[bench_right_label] / bench_table[bench_left_label].replace(0, np.nan) - 1)
+    bench_table.loc[bench_both_zero, bench_pct_label] = 0.0
 
     st.dataframe(
         bench_table,
@@ -772,13 +774,13 @@ else:
         column_config={
             bench_left_label: st.column_config.NumberColumn(format="%.6f"),
             bench_right_label: st.column_config.NumberColumn(format="%.6f"),
-            "% change": st.column_config.NumberColumn(format="%+.2f%%"),
+            bench_pct_label: st.column_config.NumberColumn(format="%+.2f%%"),
         },
     )
 
     # One bar for every row of the table above, in the same order.
     bench_bar_vars = bench_table["Variable"].str.strip().tolist()
-    bench_pct_change = bench_table["% change"]
+    bench_pct_change = bench_table[bench_pct_label]
     bench_bar_heights = bench_pct_change.fillna(0.0).values
     bench_bar_text = [("n/a" if pd.isna(v) else f"{v:+.2f}%") for v in bench_pct_change.values]
     fig_bench_bar = go.Figure(go.Bar(x=bench_bar_vars, y=bench_bar_heights,
@@ -967,7 +969,7 @@ else:
 # S3. Marginal Effects: an increase in G/Y (item D.2) starting from the current
 # situation -- every sidebar setting, including the current G/Y, as it is now.
 # Reuses ss_old/ss_new/path from the ΔG/Y experiment above; ss_old is the same
-# steady state as S1's "Current settings".
+# steady state as column (B) of S1's table.
 # --------------------------------------------------------------------------
 
 st.header("Part II. The Effect of Raising G/Y", divider="gray")
@@ -980,7 +982,7 @@ st.write(f"What happens if government spending **rises by {dG_pct:.1f} percentag
          "government spending -- in whatever economy the sidebar describes. Change any "
          "other setting (for example λ in item F) and the starting point changes, so "
          "these effects change too. The left column is the same steady state as "
-         "Section S1's \"Current settings\".")
+         "column (B) of Section S1's table.")
 if dG_pct == 0:
     st.info("Item D.2 is 0, so G/Y does not rise and every change below is zero. "
             "Set D.2 above 0 to see the effect of new spending.")
@@ -1302,8 +1304,8 @@ with st.expander("ℹ️ Methodology notes"):
   effect of more government spending in the *current* situation: starting from the
   current settings (including the current G/Y, item D.1), G/Y rises by the amount in
   item D.2 while every other setting (tax mix, composition, φ, θ_G, household
-  types) stays as it is. Its starting point is the same steady state as S1's
-  "Current settings", so changing any setting changes these marginal effects.
+  types) stays as it is. Its starting point is the same steady state as column
+  (B) of S1's table, so changing any setting changes these marginal effects.
 - **S4 (Multipliers)** uses the same G/Y increase and reports, for each
   variable X (Y, C, I, K, Kᴳ, and with λ>0 each household type's consumption), the
   multiplier ΔX/ΔG -- the change in X per dollar of new government spending -- both
