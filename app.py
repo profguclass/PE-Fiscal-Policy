@@ -739,7 +739,7 @@ if benchmark_error:
 else:
     bench_left_label = "(A) Benchmark's initial equilibrium"
     bench_right_label = "(B) Current settings' long-run equilibrium"
-    bench_pct_label = "(B-A) % change"
+    bench_pct_label = "(B/A−1) % change"
 
     bench_table = pd.DataFrame({
         "Variable": ["Output Y", "Consumption C", "Investment I", "Private capital K",
