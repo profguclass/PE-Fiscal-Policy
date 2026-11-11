@@ -792,6 +792,7 @@ else:
             ("Capital & interest rate", "Rental rate of capital R (%)", ss.theta_K * ss.Y / ss.K * 100),
             ("Labor market", "Labor input N (% of time)", ss.N * 100),
             ("Labor market", "Real wage w", ss.w),
+            ("Labor market", "Labor productivity Y/N (output per hour)", ss.Y / ss.N),
             ("Government spending", "Government spending G (total)", ss.G),
             ("Government spending", "  Public investment Iᴳ", ss.IG),
             ("Government spending", "  In-kind welfare Gᶜ", ss.GC),
@@ -948,9 +949,15 @@ if not benchmark_error and cumulative_path is not None:
                                     "(1−τʸ)R = r + δ, so R moves with the income-tax rate. R comes "
                                     "from the model's exact equations along the path."),
         "Labor market": ([("Labor input N (% of time)", from_bench(cp.N, b.N * 100), "#2563eb", b.N * 100),
-                          ("Real wage w", from_bench(cp.W, b.w), "#dc2626", b.w)],
+                          ("Real wage w", from_bench(cp.W, b.w), "#dc2626", b.w),
+                          ("Labor productivity Y/N (output per hour)", from_bench(cp.Y - cp.N, b.Y / b.N),
+                           "#16a34a", b.Y / b.N)],
                          "Labor and the wage jump immediately to reflect the new regime's prices; "
-                         "only capital is predetermined and adjusts gradually."),
+                         "only capital is predetermined and adjusts gradually. Labor productivity "
+                         "rises when capital per hour rises -- private capital K through saving, "
+                         "public capital Kᴳ through public investment. With a fixed labor share, "
+                         "the wage is that share of labor productivity, w = θ_N·Y/N, so the two "
+                         "move together."),
         "Government spending": ([("Government spending G (total)", e.G * g_scale, "#6b7280", b.G),
                                  ("Public investment Iᴳ", e.IG * g_scale, "#2563eb", b.IG),
                                  ("In-kind welfare Gᶜ", e.GC * g_scale, "#16a34a", b.GC),
