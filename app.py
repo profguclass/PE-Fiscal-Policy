@@ -172,6 +172,16 @@ cumulative_rules = {
 }
 
 
+def government_revenue(out):
+    """Total tax revenue from `household_outcomes`: the lump-sum tax (everyone pays it),
+    the income tax on optimizers' labor income and all capital income (hand-to-mouth
+    households pay no income tax), and the consumption tax on total consumption."""
+    lam = out["lam"]
+    C = (1.0 - lam) * out["CO"] + (lam * out["CH"] if lam > 0 else 0.0)
+    taxed_income = (1.0 - lam) * out["labor_O"] + out["capital"]
+    return out["T"] + out["tau_y"] * taxed_income + out["tau_c"] * C
+
+
 def cumulative(arr, how):
     a = np.asarray(arr, dtype=float)
     if how == "growth":
@@ -786,23 +796,25 @@ else:
     def s1a_rows(ss):
         """(category, variable, level) for every row of S1's table."""
         rows = [
-            ("Output & demand", "Output Y", ss.Y),
-            ("Output & demand", "Consumption C", ss.C),
-            ("Output & demand", "Investment I", ss.I),
-            ("Capital & interest rate", "Private capital K", ss.K),
-            ("Capital & interest rate", "Public capital Kᴳ", ss.KG),
-            ("Capital & interest rate", "Real interest rate r (%)", ss.r * 100),
-            ("Capital & interest rate", "Rental rate of capital R (%)", ss.theta_K * ss.Y / ss.K * 100),
+            ("Commodity market", "Output Y", ss.Y),
+            ("Commodity market", "Consumption C", ss.C),
+            ("Commodity market", "Investment I", ss.I),
+            ("Capital market", "Private capital K", ss.K),
+            ("Capital market", "Public capital Kᴳ", ss.KG),
+            ("Capital market", "Real interest rate r (%)", ss.r * 100),
+            ("Capital market", "Rental rate of capital R (%)", ss.theta_K * ss.Y / ss.K * 100),
             ("Labor market", "Total Hours N (% of time)", ss.N * 100),
             ("Labor market", "Real wage w", ss.w),
             ("Labor market", "Labor productivity Y/N (output per hour)", ss.Y / ss.N),
-            ("Government spending", "Government spending G (total)", ss.G),
-            ("Government spending", "  Public investment Iᴳ", ss.IG),
-            ("Government spending", "  In-kind welfare Gᶜ", ss.GC),
-            ("Government spending", "  Cash welfare Gᵀ", ss.GT),
-            ("Taxes", "Income-tax rate τʸ (%)", ss.tau_y * 100),
-            ("Taxes", "Consumption-tax rate τᶜ (%)", ss.tau_c * 100),
-            ("Taxes", "Lump-sum tax T (per person)", ss.T),
+            ("Gov't expenditure", "Government spending G (total)", ss.G),
+            ("Gov't expenditure", "  Public investment Iᴳ", ss.IG),
+            ("Gov't expenditure", "  In-kind welfare Gᶜ", ss.GC),
+            ("Gov't expenditure", "  Cash welfare Gᵀ", ss.GT),
+            ("Gov't revenue", "Government revenue (total)",
+             government_revenue(household_outcomes(ss, np.zeros((4, 1))))[0]),
+            ("Gov't revenue", "Income-tax rate τʸ (%)", ss.tau_y * 100),
+            ("Gov't revenue", "Consumption-tax rate τᶜ (%)", ss.tau_c * 100),
+            ("Gov't revenue", "Lump-sum tax T (per person)", ss.T),
         ]
         if show_types:
             o, h = "Optimizers (share 1−λ)", "Hand-to-mouth (share λ)"
@@ -949,12 +961,12 @@ if not benchmark_error and cumulative_path is not None:
     g_scale = np.exp(cp.state[2])  # each part of G moves one for one with total G
     R_bench = b.theta_K * b.Y / b.K
     s1b_tabs = {
-        "Output & demand": ([("Output Y", from_bench(cp.Y, b.Y), "#2563eb", b.Y),
+        "Commodity market": ([("Output Y", from_bench(cp.Y, b.Y), "#2563eb", b.Y),
                              ("Consumption C", from_bench(cp.C, b.C), "#16a34a", b.C),
                              ("Investment I", from_bench(cp.I, b.I), "#f59e0b", b.I)],
                             "Here the \"shock\" is the *entire* gap between the benchmark and the "
                             "sidebar's current settings, not a single isolated policy lever."),
-        "Capital & interest rate": ([("Private capital K", from_bench(cp.K, b.K), "#2563eb", b.K),
+        "Capital market": ([("Private capital K", from_bench(cp.K, b.K), "#2563eb", b.K),
                                      ("Public capital Kᴳ", from_bench(cp.KG, b.KG), "#16a34a", b.KG),
                                      ("Real interest rate r (%)", (e.r + cp.r_bp / 10000.0) * 100,
                                       "#7c3aed", b.r * 100),
@@ -982,16 +994,20 @@ if not benchmark_error and cumulative_path is not None:
                          "public capital Kᴳ through public investment. With a fixed labor share, "
                          "the wage is that share of labor productivity, w = θ_N·Y/N, so the two "
                          "move together."),
-        "Government spending": ([("Government spending G (total)", e.G * g_scale, "#6b7280", b.G),
+        "Gov't expenditure": ([("Government spending G (total)", e.G * g_scale, "#6b7280", b.G),
                                  ("Public investment Iᴳ", e.IG * g_scale, "#2563eb", b.IG),
                                  ("In-kind welfare Gᶜ", e.GC * g_scale, "#16a34a", b.GC),
                                  ("Cash welfare Gᵀ", e.GT * g_scale, "#db2777", b.GT)],
                                 "Each part of G moves one for one with total G."),
-        "Taxes": ([("Income-tax rate τʸ (%)", perf["tau_y"] * 100, "#2563eb", b.tau_y * 100),
+        "Gov't revenue": ([("Government revenue (total)", government_revenue(perf), "#6b7280",
+                            government_revenue(perf_bench)[0]),
+                           ("Income-tax rate τʸ (%)", perf["tau_y"] * 100, "#2563eb", b.tau_y * 100),
                    ("Consumption-tax rate τᶜ (%)", perf["tau_c"] * 100, "#16a34a", b.tau_c * 100),
                    ("Lump-sum tax T (per person)", perf["T"], "#f59e0b", b.T)],
-                  "Tax rates adjust every year so each tax raises its share of G (item A). They "
-                  "come from the model's exact equations along the path."),
+                  "Tax rates adjust every year so each tax raises its share of G (item A), so "
+                  "total revenue, T + τʸ·(taxed income) + τᶜ·C, equals government spending G "
+                  "every year (a balanced budget). They come from the model's exact equations "
+                  "along the path."),
     }
     if show_types:
         group_note = ("Per person is one household of the type; group total is the type's part "
