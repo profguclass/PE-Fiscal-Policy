@@ -548,7 +548,7 @@ s_G_new_pct = d_box.slider(
          "G/Y from this current level (item D.2).",
     key=wkey("s_G_new_pct"))
 dG_pct = d_box.number_input(
-    "D.2 Rise in G/Y for S3 and S4 (pp)", 0.0, 10.0, 0.0, 0.5,
+    "D.2 Rise in G/Y (%p)", 0.0, 10.0, 0.0, 0.5,
     help="Sections S3 and S4 raise G/Y by this much from its current level (item D.1), "
          "holding every other setting as it is now.",
     key=wkey("dG_pct"))
