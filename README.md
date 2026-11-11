@@ -5,7 +5,7 @@ Students choose how a government taxes and what it spends on, then see the
 effects on output, hours, capital, tax rates, inequality and welfare, both in
 the long run and year by year along the transition.
 
-**Open the app:** <https://profguclass.github.io/baxter-king-fiscal-app/>
+**Open the app:** <https://profguclass.github.io/PE-Fiscal-Policy/>
 
 ## What students can change
 
