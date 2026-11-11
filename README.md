@@ -28,12 +28,14 @@ this benchmark with their own.
 **Part I. The benchmark vs the sidebar's settings**
 
 - **S1A. Comparison between Old and New Equilibrium:** steady-state levels and
-  % changes, benchmark vs the current settings.
+  % changes, benchmark vs the current settings, including inequality between the
+  household types (with a two-group Gini) and the long-run consumption-equivalent
+  welfare gain.
 - **S1B. Transition from Old to New Equilibrium:** the year-by-year path from the
-  benchmark to the current settings, with dashed lines at each series' new level.
-- **S2. Growth, inequality, and welfare over time:** year-by-year growth,
-  incomes and hours by household type, inequality (including a two-group Gini)
-  and consumption-equivalent welfare.
+  benchmark to the current settings, in levels, with dashed lines at each series'
+  new level, plus inequality and welfare year by year.
+- **S2. Growth, incomes, and hours over time:** year-by-year growth, and incomes
+  and hours by household type.
 
 **Part II. The Effect of Raising G/Y**
 

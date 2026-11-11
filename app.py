@@ -812,9 +812,28 @@ else:
                 (h, "Hours Nᴴ (% of time, per person)", ss.NH * 100),
                 (h, "Hours λ·Nᴴ (% of time, group total)", ss.lam * ss.NH * 100),
             ]
+            out = household_outcomes(ss, np.zeros((4, 1)))  # the steady state's incomes
+            y_O, y_H = out["income_O"][0], out["income_H"][0]
+            q = "Inequality"
+            rows += [
+                (q, "Gini coefficient of disposable income", two_group_gini(ss.lam, y_H, y_O)),
+                (q, "Disposable income ratio yᴼ/yᴴ (per person)", y_O / y_H),
+                (q, "Consumption ratio Cᴼ/Cᴴ (per person)", ss.CO / ss.CH),
+            ]
         return rows
 
     bench_rows, current_rows = s1a_rows(ss_benchmark), s1a_rows(ss_current)
+    if show_types:
+        # Welfare as an index, (A) = 100: (B) is 100 plus the consumption-equivalent gain of
+        # living in steady state (B) rather than (A), so the % change column is that gain.
+        gains_ss = welfare_gains(household_outcomes(ss_benchmark, np.zeros((4, 1))),
+                                 household_outcomes(ss_current, np.zeros((4, 1))),
+                                 1.0 / (1.0 + r_v), theta_L_bench, phi_v, long_run=True, last_year=0)
+        for label, k in (("per optimizer", "O"), ("per hand-to-mouth household", "H"),
+                         ("per person, average", "all")):
+            var = f"Welfare index, {label} (A = 100)"
+            bench_rows.append(("Welfare", var, 100.0))
+            current_rows.append(("Welfare", var, 100.0 + gains_ss[k]))
     bench_table = pd.DataFrame({
         "Category": [cat for cat, _, _ in bench_rows],
         "Variable": [var for _, var, _ in bench_rows],
@@ -835,6 +854,15 @@ else:
             bench_pct_label: st.column_config.NumberColumn(format="%+.2f%%"),
         },
     )
+    if show_types:
+        st.caption(
+            "**Inequality** compares the two household types in each steady state; higher "
+            "means more inequality. **Welfare** is an index with (A) = 100: (B) is 100 plus "
+            "the consumption-equivalent gain of living in (B) rather than (A), i.e. the % rise "
+            "in (A)'s consumption, every year, that would make a household as happy as in (B). "
+            "So its % change is that gain. It compares the two steady states only; S1B's "
+            "Welfare tab adds the years of adjustment. Both are valued with the current φ (item C)."
+        )
 
     # One bar for every row of the table above, in the same order.
     bench_bar_vars = bench_table["Variable"].str.strip().tolist()
@@ -870,7 +898,23 @@ else:
 if not benchmark_error and cumulative_path is not None:
     cp = cumulative_path
     ss_end = ss_current if permanent else ss_reverted  # the equilibrium the path settles at
-    exact = household_outcomes(ss_end, cp.state)  # exact tax levels along the path, as in S2
+    # Exact levels along the path (taxes, R, incomes, welfare), also used by S2.
+    perf = household_outcomes(ss_end, cp.state)
+    perf_bench = household_outcomes(ss_benchmark, np.zeros((4, 1)))
+    for outcomes in (perf, perf_bench):
+        outcomes["prod"] = outcomes["Y"] / outcomes["N"]  # labor productivity
+    perf_bad = ~np.isfinite(perf["Y"]) | ~np.isfinite(perf["income_O"])
+    if show_types:
+        perf_bad |= ~np.isfinite(perf["CH"])
+    perf_warning = (
+        f"In {int(perf_bad.sum())} year(s) of the transition (from year "
+        f"{int(np.argmax(perf_bad))}) the model's exact equations have no solution: "
+        "the economy starts so far from its new steady state (for example, with far "
+        "more capital than it needs) that some household would have to work negative "
+        "hours. Those years are left blank and welfare cannot be computed. Try a "
+        "smaller policy change.")
+    if perf_bad.any():
+        st.warning(perf_warning)
 
     def from_bench(dev, bench_level):
         """Levels along the path from % (log) deviations from the benchmark level."""
@@ -889,14 +933,14 @@ if not benchmark_error and cumulative_path is not None:
                                      ("Public capital Kᴳ", from_bench(cp.KG, b.KG), "#16a34a", b.KG),
                                      ("Real interest rate r (%)", (e.r + cp.r_bp / 10000.0) * 100,
                                       "#7c3aed", b.r * 100),
-                                     ("Rental rate of capital R (%)", exact["R"] * 100, "#f59e0b",
+                                     ("Rental rate of capital R (%)", perf["R"] * 100, "#f59e0b",
                                       R_bench * 100)],
                                     "Watch how far and how fast private (and, if θ_G>0, public) "
                                     "capital has to move to reach the new regime's steady state. "
                                     "r returns to the benchmark's, since r is fixed in steady state. "
                                     "R need not: in steady state (1−τʸ)R = r + δ, so R moves with "
                                     "the income-tax rate. R comes from the model's exact equations "
-                                    "along the path, as in S2."),
+                                    "along the path."),
         "Labor market": ([("Labor input N (% of time)", from_bench(cp.N, b.N * 100), "#2563eb", b.N * 100),
                           ("Real wage w", from_bench(cp.W, b.w), "#dc2626", b.w)],
                          "Labor and the wage jump immediately to reflect the new regime's prices; "
@@ -906,11 +950,11 @@ if not benchmark_error and cumulative_path is not None:
                                  ("In-kind welfare Gᶜ", e.GC * g_scale, "#16a34a", b.GC),
                                  ("Cash welfare Gᵀ", e.GT * g_scale, "#db2777", b.GT)],
                                 "Each part of G moves one for one with total G."),
-        "Taxes": ([("Income-tax rate τʸ (%)", exact["tau_y"] * 100, "#2563eb", b.tau_y * 100),
-                   ("Consumption-tax rate τᶜ (%)", exact["tau_c"] * 100, "#16a34a", b.tau_c * 100),
-                   ("Lump-sum tax T (per person)", exact["T"], "#f59e0b", b.T)],
+        "Taxes": ([("Income-tax rate τʸ (%)", perf["tau_y"] * 100, "#2563eb", b.tau_y * 100),
+                   ("Consumption-tax rate τᶜ (%)", perf["tau_c"] * 100, "#16a34a", b.tau_c * 100),
+                   ("Lump-sum tax T (per person)", perf["T"], "#f59e0b", b.T)],
                   "Tax rates adjust every year so each tax raises its share of G (item A). They "
-                  "come from the model's exact equations along the path, as in S2."),
+                  "come from the model's exact equations along the path."),
     }
     if show_types:
         group_note = ("Per person is one household of the type; group total is the type's part "
@@ -940,26 +984,62 @@ if not benchmark_error and cumulative_path is not None:
 
     years_to_show = st.slider("Years to display", 5, 100, 50, 5, key=wkey("years_to_show_cumulative"))
     yrs = cp.years[:years_to_show]
+    if show_types:
+        def gini(out, lam):
+            return two_group_gini(lam, out["income_H"], out["income_O"])
+
+        s1b_tabs["Inequality"] = (
+            [("Gini coefficient of disposable income", gini(perf, e.lam), "#dc2626",
+              gini(perf_bench, b.lam)[0]),
+             ("Disposable income ratio yᴼ/yᴴ (per person)", perf["income_O"] / perf["income_H"],
+              "#2563eb", perf_bench["income_O"][0] / perf_bench["income_H"][0]),
+             ("Consumption ratio Cᴼ/Cᴴ (per person)", perf["CO"] / perf["CH"], "#16a34a",
+              perf_bench["CO"][0] / perf_bench["CH"][0])],
+            "Two ways to measure inequality between the two household types; higher means "
+            "more inequality. The ratios compare an average optimizer with an average "
+            "hand-to-mouth household (2 means twice as much). The Gini coefficient runs from 0 "
+            "(equal) to 1; with two groups it equals λ(1−λ)·|yᴼ − yᴴ| / (average income), so it "
+            "also depends on the groups' sizes, and it ignores inequality within each group. "
+            "Optimizers' disposable income includes what they save, so the consumption ratio "
+            "is often a better guide to living standards.")
+        yearly = period_welfare_gains(perf_bench, perf, theta_L_bench, phi_v)
+        T = years_to_show - 1
+        gains_all = welfare_gains(perf_bench, perf, 1.0 / (1.0 + r_v), theta_L_bench, phi_v, last_year=T)
+        welfare_types = (("per optimizer", "O", "#0d9488"), ("per hand-to-mouth household", "H", "#db2777"),
+                         ("per person, average", "all", "#2563eb"))
+        s1b_tabs["Welfare"] = (
+            [(f"Welfare index, {label} (A = 100)", 100.0 + yearly[k], color, 100.0)
+             for label, k, color in welfare_types],
+            "Each year's welfare as an index with the benchmark = 100, as in S1A's table: 100 "
+            "plus the % rise in the benchmark's consumption that would make a household exactly "
+            "as happy as it is in that year, counting own consumption, in-kind welfare and "
+            "leisure through utility ln(C + φGᶜ) + θ_L·ln(1 − N). The dashed line is where "
+            "welfare settles in the new equilibrium (S1A's (B) value when the change is "
+            "permanent). **Including the transition**, adding up utility over years 0 to "
+            f"{T} (the years shown), discounted with β = 1/(1+r), and counting year {T} for every "
+            "year after, the consumption-equivalent gains are "
+            + ", ".join(f"{gains_all[k]:+.2f}% {label}" for label, k, _ in welfare_types)
+            + ". Both the benchmark and the policy are valued with the current φ (item C).")
     for tab, (tab_name, (series, caption)) in zip(st.tabs(list(s1b_tabs)), s1b_tabs.items()):
         with tab:
             st.plotly_chart(level_panels(series, yrs), use_container_width=True, key=f"s1b_{tab_name}")
             st.caption(caption)
     if not show_types:
-        st.caption("The two household-type tabs appear only when both the benchmark and the "
-                   "current settings have hand-to-mouth households (λ>0 in item F).")
+        st.caption("The household-type, Inequality and Welfare tabs appear only when both the "
+                   "benchmark and the current settings have hand-to-mouth households (λ>0 in item F).")
 
 # --------------------------------------------------------------------------
 # S2. Policy performance along S1B's transition (benchmark -> current
-# settings): growth, incomes by household type, inequality, and welfare.
+# settings): growth, incomes, and hours by household type.
 # --------------------------------------------------------------------------
 
-st.subheader("S2. Growth, inequality, and welfare over time")
+st.subheader("S2. Growth, incomes, and hours over time")
 st.write(
     "How does the policy in Sections S1A–S1B -- moving from the **benchmark scenario** to the "
     "**current settings** -- perform year by year? This section follows the same "
-    "transition path as Section S1B and asks four questions: Does the economy grow? "
-    "Whose income grows? Does inequality between the two household types rise or "
-    "fall? And are households better or worse off overall? Year 0 is the year the "
+    "transition path as Section S1B and asks three questions: Does the economy grow? "
+    "Whose income grows? And who works more or less? Inequality and welfare are in "
+    "S1A (steady states) and S1B (year by year). Year 0 is the year the "
     "policy changes; the economy was at the benchmark steady state before that. "
     "At the default settings the current settings *are* the benchmark, so every line "
     "is flat: change a sidebar setting to create a policy to evaluate."
@@ -975,23 +1055,9 @@ if benchmark_error or cumulative_path is None:
     st.info("Policy performance needs Section S1B's transition path, which is "
             "unavailable at these settings.")
 else:
-    perf = household_outcomes(ss_current if permanent else ss_reverted, cumulative_path.state)
-    perf_bench = household_outcomes(ss_benchmark, np.zeros((4, 1)))
-    for outcomes in (perf, perf_bench):
-        outcomes["prod"] = outcomes["Y"] / outcomes["N"]  # labor productivity
-    two_types = ss_benchmark.lam > 0 and ss_current.lam > 0
-    perf_bad = ~np.isfinite(perf["Y"]) | ~np.isfinite(perf["income_O"])
-    if two_types:
-        perf_bad |= ~np.isfinite(perf["CH"])
+    two_types = show_types
     if perf_bad.any():
-        st.warning(
-            f"In {int(perf_bad.sum())} year(s) of the transition (from year "
-            f"{int(np.argmax(perf_bad))}) the model's exact equations have no solution: "
-            "the economy starts so far from its new steady state (for example, with far "
-            "more capital than it needs) that some household would have to work negative "
-            "hours. Those years are left blank and welfare cannot be computed. Try a "
-            "smaller policy change."
-        )
+        st.warning(perf_warning)
     perf_years = st.slider("Years to display", 5, 100, 50, 5, key=wkey("years_to_show_performance"))
     yrs = np.arange(perf_years)
     yrs_lvl = np.arange(-1, perf_years)  # year -1 = the benchmark steady state
@@ -1004,7 +1070,7 @@ else:
             g = 100.0 * (x / prev - 1.0)
         return np.where(np.isfinite(g), g, np.nan)
 
-    st.caption("All incomes, hours, and welfare below are **per person** (per capita): "
+    st.caption("All incomes and hours below are **per person** (per capita): "
                "the population is normalized to 1, so the economy-wide series are averages "
                "over everyone, and each household type's series is for one member of that "
                "type.")
@@ -1013,8 +1079,7 @@ else:
                 "so only economy-wide results are shown. Set λ above 0 to compare the "
                 "two household types.")
 
-    tab_g, tab_i, tab_h, tab_q, tab_w = st.tabs(
-        ["Growth", "Incomes", "Hours", "Inequality", "Welfare"])
+    tab_g, tab_i, tab_h = st.tabs(["Growth", "Incomes", "Hours"])
 
     with tab_g:
         perf_chart("Output and labor productivity: year-over-year growth",
@@ -1081,20 +1146,6 @@ else:
         else:
             st.info("Hours by household type need λ > 0 (item F).")
 
-    with tab_q:
-        if two_types:
-            render_inequality_tab(perf, perf_bench, ss_current.lam, ss_benchmark.lam,
-                                  yrs_lvl, "perf", "the benchmark")
-        else:
-            st.info("Inequality between household types needs λ > 0 (item F).")
-
-    with tab_w:
-        if two_types:
-            render_welfare_tab(perf, perf_bench, ss_current.lam, ss_benchmark.lam,
-                               yrs, "perf", "the benchmark")
-        else:
-            st.info("Welfare by household type needs λ > 0 (item F), since the benchmark "
-                    "has two household types and the current settings have one.")
 
 # --------------------------------------------------------------------------
 # S3. Marginal Effects: an increase in G/Y (item D.2) starting from the current
@@ -1206,8 +1257,8 @@ else:
              "state, solved exactly via eigen-decomposition -- no simulation noise). "
              "All series are % deviations from the *current situation* (the steady state "
              "set by the sidebar, before the extra rise in G/Y). "
-             "The Inequality and Welfare tabs work as in "
-             "Section S2, with the current situation in place of the benchmark: their "
+             "The Inequality and Welfare tabs measure inequality and welfare the same way "
+             "as Section S1B, with the current situation in place of the benchmark: their "
              "levels come from the model's exact equations along this path.")
     perf_marg = household_outcomes(ss_new if permanent else ss_old, path.state)
     perf_marg_base = household_outcomes(ss_old, np.zeros((4, 1)))
@@ -1422,13 +1473,16 @@ with st.expander("ℹ️ Methodology notes"):
   and consumption-tax wedges distort households' margins independent of net revenue.
 - **S1B (Transition from Old to New Equilibrium)** imagines the economy starting at the benchmark's capital stocks with the
   current regime put permanently in place.
-- **S2 (Growth, inequality, and welfare over time)** follows S1B's transition path (benchmark →
+- **Inequality and welfare** appear in S1A for the two steady states (income and
+  consumption ratios and a two-group Gini; the long-run consumption-equivalent welfare
+  gain) and in S1B's Inequality and Welfare tabs year by year (consumption-equivalent
+  gains each year and overall, with and without the transition).
+- **S2 (Growth, incomes, and hours over time)** follows S1B's transition path (benchmark →
   current settings) and reports, year by year, growth of output, labor productivity,
-  hours, and labor/capital/disposable income by household type; the hours gap;
-  inequality between the types (income and consumption ratios and a two-group Gini);
-  and welfare (consumption-equivalent gains each year and overall, with and without the
-  transition). Levels come from solving each year's static equations exactly at the
-  path's capital and optimizers' consumption. Welfare uses the current φ for both
+  hours, and labor/capital/disposable income by household type, and the hours gap.
+  Levels here and in S1B's Inequality and Welfare tabs come from solving each year's
+  static equations exactly at the path's capital and optimizers' consumption.
+  Welfare uses the current φ for both
   scenarios and discounts with β = 1/(1+r), adding up the years shown ("Years to
   display", 50 by default) and counting the last one for every year after that.
 - **S3 (Now vs After raising G/Y, in levels and over time)** instead isolates the
