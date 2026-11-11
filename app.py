@@ -1311,10 +1311,6 @@ with st.expander("ℹ️ Methodology notes"):
   multiplier ΔX/ΔG -- the change in X per dollar of new government spending -- both
   the long-run multiplier (from the two steady states) and the impact multiplier
   (from year 0 of the transition path) for each.
-
-**Reference:** Baxter, Marianne, and Robert G. King. 1993. "Fiscal Policy in
-General Equilibrium." *American Economic Review* 83 (3): 315-334. The fixed labor share,
-depreciation rate, real interest rate and hours target follow its calibration.
         """
     )
 

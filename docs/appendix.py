@@ -466,7 +466,7 @@ def render():
     everyone is an optimizer. Use only one tax, either all lump-sum or all income tax. And
     spend all government money on things households do not value: in-kind welfare with an
     in-kind value of zero, or public investment with a public-capital elasticity of zero.
-    What is left is the model studied by Baxter and King (1993).
+    What is left is the standard neoclassical growth model with government spending.
     """
     )
     with st.container(border=True):

@@ -98,7 +98,3 @@ python -m http.server 8000 --directory docs
 
 Then open `http://localhost:8000`, and commit and push `docs/` along with the
 changed source files.
-
-## Reference
-
-Baxter, Marianne, and Robert G. King. 1993. "Fiscal Policy in General Equilibrium." *American Economic Review* 83 (3): 315-334. The fixed labor share, depreciation rate, real interest rate and hours target above follow its calibration.
