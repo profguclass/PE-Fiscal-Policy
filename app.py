@@ -412,7 +412,7 @@ DEFAULT_BENCH = dict(f_LS=50.0, f_Y=20.0, f_C=30.0, theta_G=0.10, s_G=20.0,
                    f_IG=20.0, f_GC=50.0, f_GT=30.0, phi=0.10, lam=0.30)
 
 # The benchmark in use: the sidebar's defaults (and Reset target), and the reference
-# point Sections S1A and S1B compare the current settings against. A user can replace
+# point Sections S1 and S2 compare the current settings against. A user can replace
 # it for the rest of their session with "⚙ Benchmark".
 bench = st.session_state.get("bench", DEFAULT_BENCH)
 BENCH_f_LS_pct, BENCH_f_Y_pct, BENCH_f_C_pct = bench["f_LS"], bench["f_Y"], bench["f_C"]
@@ -432,7 +432,7 @@ def reset_to_benchmark():
 
 @st.dialog("Set the benchmark economy", width="large")
 def benchmark_dialog():
-    st.write("The benchmark is the economy Sections S1A and S1B compare against, and where "
+    st.write("The benchmark is the economy Sections S1 and S2 compare against, and where "
              "**↺ Reset** takes the sidebar. Your benchmark lasts until you "
              "reload the page and does not affect anyone else.")
     k = lambda name: f"bench_{name}_{st.session_state['reset_version']}"
@@ -540,11 +540,11 @@ phi = st.sidebar.slider(
 # 4. Total government spending -----------------------------------------
 st.sidebar.subheader("D. Total government spending")
 _, d_box = st.sidebar.columns([1, 14])  # indent items D.1–D.3 under D
-s_G_old_pct = BENCH_s_G_pct  # the benchmark's G/Y, Section S1A's reference level
+s_G_old_pct = BENCH_s_G_pct  # the benchmark's G/Y, Section S1's reference level
 s_G_new_pct = d_box.slider(
     "D.1 Spending now, G/Y (%)", 5.0, 40.0, BENCH_s_G_pct, 1.0,
     help=f"The current level of government spending. The benchmark is G/Y = {BENCH_s_G_pct:.0f}%: "
-         "Section S1A compares the current settings against it, and Section S3 raises "
+         "Section S1 compares the current settings against it, and Section S3 raises "
          "G/Y from this current level (item D.2).",
     key=wkey("s_G_new_pct"))
 dG_pct = d_box.number_input(
@@ -629,7 +629,7 @@ BENCH_tax_mix = (BENCH_f_LS_pct / 100.0, BENCH_f_Y_pct / 100.0, BENCH_f_C_pct / 
 # recalibrated its own theta_L, hours would always land back on exactly N_target by
 # construction, silently masking any real labor-supply response to composition/
 # financing/θ_G/r/φ/λ. Holding theta_L fixed lets N move honestly, and makes
-# Section S3's starting point the same as Section S1A's column (B).
+# Section S3's starting point the same as Section S1's column (B).
 #
 # Public capital enters production relative to a fixed reference level K̄ᴳ,
 # Y = K^θK·(Kᴳ/K̄ᴳ)^θG·N^θN, which is the model's Y = A·K^θK·(Kᴳ)^θG·N^θN with
@@ -684,7 +684,7 @@ except RuntimeError as exc:  # raised by _solve_saddle_path only
     # The transition-path solver can lose saddle-path stability at extreme tax
     # rates (very high income-tax G/Y, especially with a low investment share)
     # even though the two steady states themselves are perfectly well-defined --
-    # fall back to the steady states alone, so S1A's and S3's comparison
+    # fall back to the steady states alone, so S1's and S3's comparison
     # table still work; only the transition-dependent sections (impact
     # multiplier, transition charts, duration sensitivity, S4's impact
     # column) show a scoped note below instead of taking down the whole page.
@@ -728,7 +728,7 @@ if path_error:
 # --------------------------------------------------------------------------
 # Fixed benchmark steady state (the BENCH_* scenario defined at the top of the
 # sidebar): a genuinely fixed reference point, independent of every sidebar
-# control, so S1A below always shows *some* difference when composition,
+# control, so S1 below always shows *some* difference when composition,
 # financing, θ_G, φ, or λ are moved -- not just when G/Y is.
 # --------------------------------------------------------------------------
 
@@ -760,7 +760,7 @@ except Exception as exc:  # noqa: BLE001
     benchmark_error = str(exc)
 
 st.header("Part I. The benchmark vs the sidebar's settings", divider="gray")
-st.subheader("S1A. Comparison between Old and New Equilibrium")
+st.subheader("S1. Comparison between Old and New Equilibrium")
 st.write("Exact, closed-form solution of the model's long-run (“great ratios”) "
          f"equilibrium: the **benchmark scenario** (tax revenue {BENCH_f_LS_pct:.0f}% lump-sum, "
          f"{BENCH_f_Y_pct:.0f}% income tax, {BENCH_f_C_pct:.0f}% consumption tax; "
@@ -781,7 +781,7 @@ else:
     show_types = ss_benchmark.lam > 0 and ss_current.lam > 0
 
     def s1a_rows(ss):
-        """(category, variable, level) for every row of S1A's table."""
+        """(category, variable, level) for every row of S1's table."""
         rows = [
             ("Output & demand", "Output Y", ss.Y),
             ("Output & demand", "Consumption C", ss.C),
@@ -871,7 +871,7 @@ else:
             "means more inequality. **Welfare** is an index with (A) = 100: (B) is 100 plus "
             "the consumption-equivalent gain of living in (B) rather than (A), i.e. the % rise "
             "in (A)'s consumption, every year, that would make a household as happy as in (B). "
-            "So its % change is that gain. It compares the two steady states only; S1B's "
+            "So its % change is that gain. It compares the two steady states only; S2's "
             "Welfare tab adds the years of adjustment. Both are valued with the current φ (item C)."
         )
 
@@ -887,7 +887,7 @@ else:
                                  yaxis_title="% change", height=520, margin=dict(t=50, b=20))
     st.plotly_chart(fig_bench_bar, use_container_width=True)
 
-    st.subheader("S1B. Transition from Old to New Equilibrium")
+    st.subheader("S2. Transition from Old to New Equilibrium")
     st.write("Perfect-foresight transition path, imagining the "
              "economy starts with the benchmark's capital stocks and this new "
              "regime -- tax mix, composition, φ, θ_G, and household types -- is put permanently in "
@@ -895,7 +895,7 @@ else:
              "(item D.3)**: Permanent means it jumps to the current G/Y and stays; "
              f"Temporary means it reverts to the benchmark's {BENCH_s_G_pct:.0f}% share after the "
              "chosen number of years (everything else stays at current settings). "
-             "Every chart shows **levels, in the same units as S1A's table**. In each "
+             "Every chart shows **levels, in the same units as S1's table**. In each "
              "chart the dotted gray line is the benchmark level (column A) and the dashed "
              "line is the level the path settles at in the new equilibrium.")
     try:
@@ -1052,11 +1052,11 @@ if not benchmark_error and cumulative_path is not None:
         s1b_tabs["Welfare"] = (
             [(f"Welfare index, {label} (A = 100)", 100.0 + yearly[k], color, 100.0)
              for label, k, color in welfare_types],
-            "Each year's welfare as an index with the benchmark = 100, as in S1A's table: 100 "
+            "Each year's welfare as an index with the benchmark = 100, as in S1's table: 100 "
             "plus the % rise in the benchmark's consumption that would make a household exactly "
             "as happy as it is in that year, counting own consumption, in-kind welfare and "
             "leisure through utility ln(C + φGᶜ) + θ_L·ln(1 − N). The dashed line is where "
-            "welfare settles in the new equilibrium (S1A's (B) value when the change is "
+            "welfare settles in the new equilibrium (S1's (B) value when the change is "
             "permanent). **Including the transition**, adding up utility over years 0 to "
             f"{T} (the years shown), discounted with β = 1/(1+r), and counting year {T} for every "
             "year after, the consumption-equivalent gains are "
@@ -1074,7 +1074,7 @@ if not benchmark_error and cumulative_path is not None:
 # S3. Marginal Effects: an increase in G/Y (item D.2) starting from the current
 # situation -- every sidebar setting, including the current G/Y, as it is now.
 # Reuses ss_old/ss_new/path from the ΔG/Y experiment above; ss_old is the same
-# steady state as column (B) of S1A's table.
+# steady state as column (B) of S1's table.
 # --------------------------------------------------------------------------
 
 st.header("Part II. The Effect of Raising G/Y", divider="gray")
@@ -1087,7 +1087,7 @@ st.write(f"What happens if government spending **rises by {dG_pct:.1f} percentag
          "government spending -- in whatever economy the sidebar describes. Change any "
          "other setting (for example λ in item F) and the starting point changes, so "
          "these effects change too. The left column is the same steady state as "
-         "column (B) of Section S1A's table.")
+         "column (B) of Section S1's table.")
 if dG_pct == 0:
     st.info("Item D.2 is 0, so G/Y does not rise and every change below is zero. "
             "Set D.2 above 0 to see the effect of new spending.")
@@ -1181,7 +1181,7 @@ else:
              "All series are % deviations from the *current situation* (the steady state "
              "set by the sidebar, before the extra rise in G/Y). "
              "The Inequality and Welfare tabs measure inequality and welfare the same way "
-             "as Section S1B, with the current situation in place of the benchmark: their "
+             "as Section S2, with the current situation in place of the benchmark: their "
              "levels come from the model's exact equations along this path.")
     perf_marg = household_outcomes(ss_new if permanent else ss_old, path.state)
     perf_marg_base = household_outcomes(ss_old, np.zeros((4, 1)))
@@ -1386,7 +1386,7 @@ with st.expander("ℹ️ Methodology notes"):
   benefit from Gᶜ. Transition paths are linearized *numerically* around the steady
   state; with λ=0 and a single lump-sum or income tax this reproduces the analytic
   linearization. See Appendix A.3-A.4.
-- **S1A (Comparison between Old and New Equilibrium)** compares a benchmark scenario (by default the app's, which "Set benchmark
+- **S1 (Comparison between Old and New Equilibrium)** compares a benchmark scenario (by default the app's, which "Set benchmark
   economy" can replace: tax revenue 50% lump-sum, 20% income tax, 30% consumption tax; θ_G=0.10, r=6.5%, G/Y=20% split
   20/50/30 into public investment,
   in-kind welfare and cash welfare, φ=0.10, λ=0.3; θ_N=0.58, δ=10% and 20% target
@@ -1394,12 +1394,12 @@ with st.expander("ℹ️ Methodology notes"):
   set to, so every control (tax mix, composition, φ, θ_G, G/Y, household types)
   shows up as a difference there -- including the tax mix alone, since the income-
   and consumption-tax wedges distort households' margins independent of net revenue.
-- **S1B (Transition from Old to New Equilibrium)** imagines the economy starting at the benchmark's capital stocks with the
+- **S2 (Transition from Old to New Equilibrium)** imagines the economy starting at the benchmark's capital stocks with the
   current regime put permanently in place.
-- **Incomes, inequality and welfare** appear in S1A for the two steady states and in
-  S1B's Incomes, Inequality and Welfare tabs year by year: labor, capital and
+- **Incomes, inequality and welfare** appear in S1 for the two steady states and in
+  S2's Incomes, Inequality and Welfare tabs year by year: labor, capital and
   disposable income by household type; income and consumption ratios, the hours gap
-  and a two-group Gini; and consumption-equivalent welfare gains (in S1B, each year
+  and a two-group Gini; and consumption-equivalent welfare gains (in S2, each year
   and overall including the transition). Along the path these come from solving each
   year's static equations exactly at the path's capital and optimizers' consumption.
   Welfare uses the current φ for both
@@ -1410,7 +1410,7 @@ with st.expander("ℹ️ Methodology notes"):
   current settings (including the current G/Y, item D.1), G/Y rises by the amount in
   item D.2 while every other setting (tax mix, composition, φ, θ_G, household
   types) stays as it is. Its starting point is the same steady state as column
-  (B) of S1A's table, so changing any setting changes these marginal effects.
+  (B) of S1's table, so changing any setting changes these marginal effects.
 - **S4 (Multipliers)** uses the same G/Y increase and reports, for each
   variable X (Y, C, I, K, Kᴳ, and with λ>0 each household type's consumption), the
   multiplier ΔX/ΔG -- the change in X per dollar of new government spending -- both

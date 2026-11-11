@@ -27,11 +27,11 @@ this benchmark with their own.
 
 **Part I. The benchmark vs the sidebar's settings**
 
-- **S1A. Comparison between Old and New Equilibrium:** steady-state levels and
+- **S1. Comparison between Old and New Equilibrium:** steady-state levels and
   % changes, benchmark vs the current settings, including incomes by household
   type, inequality between the types (with a two-group Gini and the hours gap)
   and the long-run consumption-equivalent welfare gain.
-- **S1B. Transition from Old to New Equilibrium:** the year-by-year path from the
+- **S2. Transition from Old to New Equilibrium:** the year-by-year path from the
   benchmark to the current settings, in levels, with dashed lines at each series'
   new level, including incomes, inequality and welfare year by year.
 
@@ -76,7 +76,7 @@ and target hours (20% of time) are fixed.
 | File | Purpose |
 |---|---|
 | `fiscal_model.py` | The economics: steady-state and transition-path solvers. No UI code. |
-| `app.py` | The Streamlit front end: the sidebar controls and Sections S1A, S1B, S3 and S4. |
+| `app.py` | The Streamlit front end: the sidebar controls and Sections S1–S4. |
 | `appendix.py` | The Appendix, shown on its own page via `?view=appendix`. |
 | `build_stlite.py` | Packages the app into `docs/` for GitHub Pages. |
 | `docs/` | The published site (generated; do not edit by hand). |
