@@ -806,11 +806,11 @@ else:
                 (o, "Consumption Cᴼ (per person)", ss.CO),
                 (o, "Consumption (1−λ)·Cᴼ (group total)", (1 - ss.lam) * ss.CO),
                 (o, "Hours Nᴼ (% of time, per person)", ss.NO * 100),
-                (o, "Hours (1−λ)·Nᴼ (% of all time, group total)", (1 - ss.lam) * ss.NO * 100),
+                (o, "Hours (1−λ)·Nᴼ (% of time, group total)", (1 - ss.lam) * ss.NO * 100),
                 (h, "Consumption Cᴴ (per person)", ss.CH),
                 (h, "Consumption λ·Cᴴ (group total)", ss.lam * ss.CH),
                 (h, "Hours Nᴴ (% of time, per person)", ss.NH * 100),
-                (h, "Hours λ·Nᴴ (% of all time, group total)", ss.lam * ss.NH * 100),
+                (h, "Hours λ·Nᴴ (% of time, group total)", ss.lam * ss.NH * 100),
             ]
         return rows
 
@@ -913,9 +913,11 @@ if not benchmark_error and cumulative_path is not None:
                   "come from the model's exact equations along the path, as in S2."),
     }
     if show_types:
-        group_note = ("Per person is one household of the type; group total is the type's share "
-                      "of the economy's total, e.g. (1−λ)·Cᴼ. Group totals of hours are in % of "
-                      "all the economy's time.")
+        group_note = ("Per person is one household of the type; group total is the type's part "
+                      "of the economy's total, e.g. (1−λ)·Cᴼ. The two types' group totals add up "
+                      "to the economy's total: (1−λ)·Cᴼ + λ·Cᴴ = C and (1−λ)·Nᴼ + λ·Nᴴ = N. "
+                      "So group totals of hours are in the same unit as N, % of time, and add up "
+                      "to N, not to 100.")
         CO, NO = from_bench(cp.CO, b.CO), from_bench(cp.NO, b.NO * 100)
         CH = from_bench(cp.CH, b.CH)
         o_b, o_e, h_b, h_e = 1 - b.lam, 1 - e.lam, b.lam, e.lam
@@ -923,7 +925,7 @@ if not benchmark_error and cumulative_path is not None:
             [("Consumption Cᴼ (per person)", CO, "#0d9488", b.CO),
              ("Consumption (1−λ)·Cᴼ (group total)", o_e * CO, "#2563eb", o_b * b.CO),
              ("Hours Nᴼ (% of time, per person)", NO, "#f59e0b", b.NO * 100),
-             ("Hours (1−λ)·Nᴼ (% of all time, group total)", o_e * NO, "#dc2626", o_b * b.NO * 100)],
+             ("Hours (1−λ)·Nᴼ (% of time, group total)", o_e * NO, "#dc2626", o_b * b.NO * 100)],
             group_note)
         nh_works = b.NH > 0 and e.NH > 0
         NH = from_bench(cp.NH, b.NH * 100)
@@ -931,7 +933,7 @@ if not benchmark_error and cumulative_path is not None:
             [("Consumption Cᴴ (per person)", CH, "#db2777", b.CH),
              ("Consumption λ·Cᴴ (group total)", h_e * CH, "#2563eb", h_b * b.CH)]
             + ([("Hours Nᴴ (% of time, per person)", NH, "#f59e0b", b.NH * 100),
-                ("Hours λ·Nᴴ (% of all time, group total)", h_e * NH, "#dc2626", h_b * b.NH * 100)]
+                ("Hours λ·Nᴴ (% of time, group total)", h_e * NH, "#dc2626", h_b * b.NH * 100)]
                if nh_works else []),
             group_note + ("" if nh_works else " They do not work in at least one scenario, "
                           "so the path of their hours is not computed and is left out."))
