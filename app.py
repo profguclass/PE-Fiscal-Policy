@@ -19,13 +19,16 @@ from plotly.subplots import make_subplots
 import appendix
 from fiscal_model import (
     calibrate_theta_L,
+    consumption_equivalent,
     household_outcomes,
+    period_utility,
     period_welfare_gains,
     run_experiment,
     simulate_transition,
     steady_state_for_policy,
     two_group_gini,
     welfare_gains,
+    WELFARE_LAST_YEAR,
 )
 
 st.set_page_config(page_title="Fiscal Policy in General Equilibrium",
@@ -837,14 +840,23 @@ else:
     if show_types:
         # Welfare as an index, (A) = 100: (B) is 100 plus the consumption-equivalent gain of
         # living in steady state (B) rather than (A), so the % change column is that gain.
-        gains_ss = welfare_gains(household_outcomes(ss_benchmark, np.zeros((4, 1))),
-                                 household_outcomes(ss_current, np.zeros((4, 1))),
+        out_bench = household_outcomes(ss_benchmark, np.zeros((4, 1)))
+        gains_ss = welfare_gains(out_bench, household_outcomes(ss_current, np.zeros((4, 1))),
                                  1.0 / (1.0 + r_v), theta_L_bench, phi_v, long_run=True, last_year=0)
+        # Accumulated: lifetime welfare along the permanent move from (A) to (B), years
+        # of adjustment included (the same sum as S2's accumulated panels).
+        try:
+            s1_path = regime_transition_path(ss_benchmark, ss_current, T_sim=200)
+            gains_acc = welfare_gains(out_bench, household_outcomes(ss_current, s1_path.state),
+                                      1.0 / (1.0 + r_v), theta_L_bench, phi_v)
+        except Exception:  # noqa: BLE001
+            gains_acc = {"O": np.nan, "H": np.nan, "all": np.nan}
         for label, k in (("per optimizer", "O"), ("per hand-to-mouth household", "H"),
                          ("per person, average", "all")):
-            var = f"Welfare index, {label} (A = 100)"
-            bench_rows.append(("Welfare", var, 100.0))
-            current_rows.append(("Welfare", var, 100.0 + gains_ss[k]))
+            for part, gains in (("new equilibrium", gains_ss), ("accumulated, old to new equilibrium", gains_acc)):
+                var = f"Welfare index, {label}: {part} (A = 100)"
+                bench_rows.append(("Welfare", var, 100.0))
+                current_rows.append(("Welfare", var, 100.0 + gains[k]))
     bench_table = pd.DataFrame({
         "Category": [cat for cat, _, _ in bench_rows],
         "Variable": [var for _, var, _ in bench_rows],
@@ -869,10 +881,14 @@ else:
         st.caption(
             "**Inequality** compares the two household types in each steady state; higher "
             "means more inequality. **Welfare** is an index with (A) = 100: (B) is 100 plus "
-            "the consumption-equivalent gain of living in (B) rather than (A), i.e. the % rise "
-            "in (A)'s consumption, every year, that would make a household as happy as in (B). "
-            "So its % change is that gain. It compares the two steady states only; S2's "
-            "Welfare tab adds the years of adjustment. Both are valued with the current φ (item C)."
+            "a consumption-equivalent gain, the % rise in (A)'s consumption, every year, that "
+            "would make a household as happy as under (B). So its % change is that gain. "
+            "**New equilibrium** compares the two steady states only: living in (B) rather "
+            "than (A). **Accumulated, old to new equilibrium** counts the whole move instead: "
+            "lifetime utility from year 0, when the economy still has (A)'s capital, through "
+            f"the years of adjustment (summed to year {WELFARE_LAST_YEAR}, then held), "
+            "discounted with β = 1/(1+r). S2's Welfare tab shows both year by year. All are "
+            "valued with the current φ (item C)."
         )
 
     # One bar for every row of the table above, in the same order.
@@ -1044,23 +1060,36 @@ if not benchmark_error and cumulative_path is not None:
             "the hours gap comes from differences in wealth and taxes: cash welfare and a lower "
             "lump-sum tax make hand-to-mouth households work less, while the income tax "
             "lowers only optimizers' after-tax wage. A positive gap means optimizers work more.")
+        beta_w = 1.0 / (1.0 + r_v)
         yearly = period_welfare_gains(perf_bench, perf, theta_L_bench, phi_v)
-        T = years_to_show - 1
-        gains_all = welfare_gains(perf_bench, perf, 1.0 / (1.0 + r_v), theta_L_bench, phi_v, last_year=T)
+        gains_acc = welfare_gains(perf_bench, perf, beta_w, theta_L_bench, phi_v)
+        # Accumulated through year t: the discounted average of utility over years 0..t,
+        # as a consumption-equivalent gain. It approaches the lifetime value gains_acc,
+        # which is appended as the last element so the dashed line sits at it.
+        disc = beta_w ** np.arange(WELFARE_LAST_YEAR)
+        acc = consumption_equivalent(
+            perf_bench,
+            {i: np.cumsum(disc * period_utility(perf["C" + i], perf["N" + i], perf["GC"], theta_L_bench,
+                                                phi_v)[:WELFARE_LAST_YEAR]) / np.cumsum(disc)
+             for i in ("O", "H")},
+            perf["lam"], theta_L_bench, phi_v)
         welfare_types = (("per optimizer", "O", "#0d9488"), ("per hand-to-mouth household", "H", "#db2777"),
                          ("per person, average", "all", "#2563eb"))
         s1b_tabs["Welfare"] = (
-            [(f"Welfare index, {label} (A = 100)", 100.0 + yearly[k], color, 100.0)
-             for label, k, color in welfare_types],
-            "Each year's welfare as an index with the benchmark = 100, as in S1's table: 100 "
-            "plus the % rise in the benchmark's consumption that would make a household exactly "
-            "as happy as it is in that year, counting own consumption, in-kind welfare and "
-            "leisure through utility ln(C + φGᶜ) + θ_L·ln(1 − N). The dashed line is where "
-            "welfare settles in the new equilibrium (S1's (B) value when the change is "
-            "permanent). **Including the transition**, adding up utility over years 0 to "
-            f"{T} (the years shown), discounted with β = 1/(1+r), and counting year {T} for every "
-            "year after, the consumption-equivalent gains are "
-            + ", ".join(f"{gains_all[k]:+.2f}% {label}" for label, k, _ in welfare_types)
+            [spec for label, k, color in welfare_types for spec in (
+                (f"{label.capitalize()}: each year (A = 100)", 100.0 + yearly[k], color, 100.0),
+                (f"{label.capitalize()}: accumulated (A = 100)",
+                 100.0 + np.append(acc[k], gains_acc[k]), color, 100.0))],
+            "Welfare as an index with the benchmark = 100, as in S1's table: 100 plus the % "
+            "rise in the benchmark's consumption that would make a household exactly as happy, "
+            "counting own consumption, in-kind welfare and leisure through utility "
+            "ln(C + φGᶜ) + θ_L·ln(1 − N). **Each year** (left) values that year alone; its "
+            "dashed line is the **new equilibrium** (S1's new-equilibrium value when the change "
+            "is permanent). **Accumulated** (right) values years 0 to the year on the axis "
+            "together, discounted with β = 1/(1+r): the same gain every year that would add up "
+            "to the same utility. Its dashed line is the whole move, years of adjustment "
+            "included (S1's accumulated value when the change is permanent): "
+            + ", ".join(f"{100 + gains_acc[k]:.2f} {label}" for label, k, _ in welfare_types)
             + ". Both the benchmark and the policy are valued with the current φ (item C).")
     for tab, (tab_name, (series, caption)) in zip(st.tabs(list(s1b_tabs)), s1b_tabs.items()):
         with tab:
@@ -1399,12 +1428,13 @@ with st.expander("ℹ️ Methodology notes"):
 - **Incomes, inequality and welfare** appear in S1 for the two steady states and in
   S2's Incomes, Inequality and Welfare tabs year by year: labor, capital and
   disposable income by household type; income and consumption ratios, the hours gap
-  and a two-group Gini; and consumption-equivalent welfare gains (in S2, each year
-  and overall including the transition). Along the path these come from solving each
-  year's static equations exactly at the path's capital and optimizers' consumption.
-  Welfare uses the current φ for both
-  scenarios and discounts with β = 1/(1+r), adding up the years shown ("Years to
-  display", 50 by default) and counting the last one for every year after that.
+  and a two-group Gini; and welfare indexes (benchmark = 100) split into the new
+  equilibrium and the value accumulated over the move from the old to the new
+  equilibrium (in S2, each year and accumulated year by year). Along the path these
+  come from solving each year's static equations exactly at the path's capital and
+  optimizers' consumption. Welfare uses the current φ for both scenarios and
+  discounts with β = 1/(1+r); the accumulated value adds up years 0 to
+  100 and counts the last one for every year after that.
 - **S3 (Now vs After raising G/Y, in levels and over time)** instead isolates the
   effect of more government spending in the *current* situation: starting from the
   current settings (including the current G/Y, item D.1), G/Y rises by the amount in
