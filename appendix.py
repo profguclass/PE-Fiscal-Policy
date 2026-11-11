@@ -312,8 +312,28 @@ def render():
     )
     with st.container(border=True):
         st.markdown("**In symbols**")
-        st.latex(r"\theta_L\,\frac{C^H_t+\phi\,G^C_t}{1-N^H_t} = \frac{w_t}{1+\tau^C_t}")
-        st.markdown("Substituting the budget constraint:")
+        st.markdown(r"Labor-leisure (when $N^H_t>0$):")
+        st.latex(r"\underbrace{\theta_L\,\frac{C^H_t+\phi\,G^C_t}{1-N^H_t}}_{\text{value of an hour of leisure, in goods}} = \underbrace{\frac{w_t}{1+\tau^C_t}}_{\text{goods an hour of work buys}}")
+        st.markdown(
+            r"This is the optimizers' rule with $(1-\tau^Y_t)$ removed, because the "
+            r"hand-to-mouth households' wages are not taxed. If even the first hour of work "
+            r"is worth less than leisure, $\theta_L\,(C^H_t+\phi\,G^C_t) \ge w_t/(1+\tau^C_t)$ "
+            r"at $N^H_t=0$, they do not work: $N^H_t=0$."
+        )
+        st.markdown(r"No Euler equation:")
+        st.markdown(
+            r"The Euler equation links today's consumption to tomorrow's through saving. "
+            r"Hand-to-mouth households cannot save or borrow, so they have no such link "
+            r"and no Euler equation. Their budget takes its place and fixes consumption each "
+            r"year. So $R_{t+1}$, $\tau^Y_{t+1}$ and future policy do not enter their choices; "
+            r"only this year's $w_t$, $\tau^C_t$, $G^T_t$, $G^C_t$ and $T_t$ do."
+        )
+        st.latex(r"(1+\tau^C_t)\,C^H_t = w_t N^H_t + \frac{G^T_t}{\lambda} - T_t")
+        st.markdown(
+            r"Solving the two together: substitute $C^H_t$ from the budget into the "
+            r"labor-leisure rule, multiply both sides by $(1+\tau^C_t)(1-N^H_t)$, and solve "
+            r"for $N^H_t$:"
+        )
         st.latex(r"N^H_t = \max\left\{0,\ \frac{w_t - \theta_L\left(\dfrac{G^T_t}{\lambda} - T_t + (1+\tau^C_t)\,\phi\,G^C_t\right)}{(1+\theta_L)\,w_t}\right\}")
         st.latex(r"C^H_t = \frac{w_t N^H_t + G^T_t/\lambda - T_t}{1+\tau^C_t}")
 
