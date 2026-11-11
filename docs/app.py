@@ -400,7 +400,7 @@ s_G_new_pct = d_box.slider(
     key=wkey("s_G_new_pct"))
 # Down to -4 points: G/Y is at least 5% in both economies, so it stays positive.
 dG_pct = d_box.number_input(
-    "D.2 Change in G/Y (%p)", -4.0, 10.0, 1.0, 0.5,
+    "D.2 Change in G/Y (%p)", -4.0, 10.0, 0.0, 0.5,
     help="Section S3 changes G/Y by this many percentage points, both from the benchmark's "
          "level and from its current level (item D.1), holding every other setting fixed. "
          "Positive is a rise in spending, negative a cut. Item D.3 sets how long it lasts.",
