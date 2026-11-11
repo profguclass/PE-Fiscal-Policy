@@ -818,20 +818,16 @@ else:
         },
     )
 
-    # Two bars for every row of the table above, in the same order: the levels in
-    # columns (A) and (B), with (B)'s bar labeled by the % change.
+    # One bar for every row of the table above, in the same order.
     bench_bar_vars = bench_table["Variable"].str.strip().tolist()
-    bench_bar_text = [("n/a" if pd.isna(v) else f"{v:+.2f}%") for v in bench_table[bench_pct_label].values]
-    fig_bench_bar = go.Figure([
-        go.Bar(x=bench_bar_vars, y=bench_table[bench_left_label], name=bench_left_label,
-               marker_color="#9ca3af"),
-        go.Bar(x=bench_bar_vars, y=bench_table[bench_right_label], name=bench_right_label,
-               marker_color="#2563eb", text=bench_bar_text, textposition="outside"),
-    ])
-    fig_bench_bar.update_layout(title="Levels: benchmark vs current settings (labels: % change)",
-                                 yaxis_title="Level (units as in the table)", barmode="group",
-                                 height=560, margin=dict(t=90, b=20),
-                                 legend=dict(orientation="h", y=1.02, yanchor="bottom"))
+    bench_pct_change = bench_table[bench_pct_label]
+    bench_bar_heights = bench_pct_change.fillna(0.0).values
+    bench_bar_text = [("n/a" if pd.isna(v) else f"{v:+.2f}%") for v in bench_pct_change.values]
+    fig_bench_bar = go.Figure(go.Bar(x=bench_bar_vars, y=bench_bar_heights,
+                                      marker_color=["#2563eb" if v >= 0 else "#dc2626" for v in bench_bar_heights],
+                                      text=bench_bar_text, textposition="outside"))
+    fig_bench_bar.update_layout(title="% change from the benchmark scenario",
+                                 yaxis_title="% change", height=520, margin=dict(t=50, b=20))
     st.plotly_chart(fig_bench_bar, use_container_width=True)
 
     st.subheader("S1B. Transition from Old to New Equilibrium")
