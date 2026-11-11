@@ -412,7 +412,7 @@ DEFAULT_BENCH = dict(f_LS=50.0, f_Y=20.0, f_C=30.0, theta_G=0.10, s_G=20.0,
                    f_IG=20.0, f_GC=50.0, f_GT=30.0, phi=0.10, lam=0.30)
 
 # The benchmark in use: the sidebar's defaults (and Reset target), and the reference
-# point Sections S1A, S1B and S2 compare the current settings against. A user can replace
+# point Sections S1A and S1B compare the current settings against. A user can replace
 # it for the rest of their session with "⚙ Benchmark".
 bench = st.session_state.get("bench", DEFAULT_BENCH)
 BENCH_f_LS_pct, BENCH_f_Y_pct, BENCH_f_C_pct = bench["f_LS"], bench["f_Y"], bench["f_C"]
@@ -432,7 +432,7 @@ def reset_to_benchmark():
 
 @st.dialog("Set the benchmark economy", width="large")
 def benchmark_dialog():
-    st.write("The benchmark is the economy Sections S1A, S1B and S2 compare against, and where "
+    st.write("The benchmark is the economy Sections S1A and S1B compare against, and where "
              "**↺ Reset** takes the sidebar. Your benchmark lasts until you "
              "reload the page and does not affect anyone else.")
     k = lambda name: f"bench_{name}_{st.session_state['reset_version']}"
@@ -815,11 +815,21 @@ else:
             ]
             out = household_outcomes(ss, np.zeros((4, 1)))  # the steady state's incomes
             y_O, y_H = out["income_O"][0], out["income_H"][0]
+            inc = "Incomes (per person)"
+            rows += [
+                (inc, "Labor income, average wN", out["labor"][0]),
+                (inc, "Labor income per optimizer wNᴼ", out["labor_O"][0]),
+                (inc, "Labor income per hand-to-mouth household wNᴴ", out["labor_H"][0]),
+                (inc, "Capital income per optimizer RKᴼ", out["capital_O"][0]),
+                (inc, "Disposable income per optimizer yᴼ", y_O),
+                (inc, "Disposable income per hand-to-mouth household yᴴ", y_H),
+            ]
             q = "Inequality"
             rows += [
                 (q, "Gini coefficient of disposable income", two_group_gini(ss.lam, y_H, y_O)),
                 (q, "Disposable income ratio yᴼ/yᴴ (per person)", y_O / y_H),
                 (q, "Consumption ratio Cᴼ/Cᴴ (per person)", ss.CO / ss.CH),
+                (q, "Hours gap Nᴼ − Nᴴ (percentage points of time)", (ss.NO - ss.NH) * 100),
             ]
         return rows
 
@@ -899,11 +909,9 @@ else:
 if not benchmark_error and cumulative_path is not None:
     cp = cumulative_path
     ss_end = ss_current if permanent else ss_reverted  # the equilibrium the path settles at
-    # Exact levels along the path (taxes, R, incomes, welfare), also used by S2.
+    # Exact levels along the path (taxes, R, incomes, inequality, welfare).
     perf = household_outcomes(ss_end, cp.state)
     perf_bench = household_outcomes(ss_benchmark, np.zeros((4, 1)))
-    for outcomes in (perf, perf_bench):
-        outcomes["prod"] = outcomes["Y"] / outcomes["N"]  # labor productivity
     perf_bad = ~np.isfinite(perf["Y"]) | ~np.isfinite(perf["income_O"])
     if show_types:
         perf_bad |= ~np.isfinite(perf["CH"])
@@ -1001,20 +1009,41 @@ if not benchmark_error and cumulative_path is not None:
         def gini(out, lam):
             return two_group_gini(lam, out["income_H"], out["income_O"])
 
+        s1b_tabs["Incomes (per person)"] = (
+            [(name, perf[k], color, perf_bench[k][0]) for name, k, color in (
+                ("Labor income, average wN", "labor", "#2563eb"),
+                ("Labor income per optimizer wNᴼ", "labor_O", "#0d9488"),
+                ("Labor income per hand-to-mouth household wNᴴ", "labor_H", "#db2777"),
+                ("Capital income per optimizer RKᴼ", "capital_O", "#7c3aed"),
+                ("Disposable income per optimizer yᴼ", "income_O", "#0d9488"),
+                ("Disposable income per hand-to-mouth household yᴴ", "income_H", "#db2777"))],
+            "Labor income is the wage times hours; capital income is the rental rate times "
+            "the capital stock. Only optimizers own capital, so all capital income is theirs: "
+            "each optimizer owns Kᴼ = K/(1−λ). **Disposable income** is what each household "
+            "can spend, the right-hand side of its budget constraint (Appendix A.3-A.4): for "
+            "optimizers, after-income-tax labor and capital income minus the lump-sum tax; for "
+            "hand-to-mouth households, their wage income plus cash welfare minus the lump-sum "
+            "tax. Both then pay the consumption tax on what they consume out of it. These come "
+            "from the model's exact equations along the path.")
         s1b_tabs["Inequality"] = (
             [("Gini coefficient of disposable income", gini(perf, e.lam), "#dc2626",
               gini(perf_bench, b.lam)[0]),
              ("Disposable income ratio yᴼ/yᴴ (per person)", perf["income_O"] / perf["income_H"],
               "#2563eb", perf_bench["income_O"][0] / perf_bench["income_H"][0]),
              ("Consumption ratio Cᴼ/Cᴴ (per person)", perf["CO"] / perf["CH"], "#16a34a",
-              perf_bench["CO"][0] / perf_bench["CH"][0])],
+              perf_bench["CO"][0] / perf_bench["CH"][0]),
+             ("Hours gap Nᴼ − Nᴴ (percentage points of time)", 100 * (perf["NO"] - perf["NH"]),
+              "#6b7280", 100 * (perf_bench["NO"][0] - perf_bench["NH"][0]))],
             "Two ways to measure inequality between the two household types; higher means "
             "more inequality. The ratios compare an average optimizer with an average "
             "hand-to-mouth household (2 means twice as much). The Gini coefficient runs from 0 "
             "(equal) to 1; with two groups it equals λ(1−λ)·|yᴼ − yᴴ| / (average income), so it "
             "also depends on the groups' sizes, and it ignores inequality within each group. "
             "Optimizers' disposable income includes what they save, so the consumption ratio "
-            "is often a better guide to living standards.")
+            "is often a better guide to living standards. Both types face the same wage, so "
+            "the hours gap comes from differences in wealth and taxes: cash welfare and a lower "
+            "lump-sum tax make hand-to-mouth households work less, while the income tax "
+            "lowers only optimizers' after-tax wage. A positive gap means optimizers work more.")
         yearly = period_welfare_gains(perf_bench, perf, theta_L_bench, phi_v)
         T = years_to_show - 1
         gains_all = welfare_gains(perf_bench, perf, 1.0 / (1.0 + r_v), theta_L_bench, phi_v, last_year=T)
@@ -1038,127 +1067,8 @@ if not benchmark_error and cumulative_path is not None:
             st.plotly_chart(level_panels(series, yrs), use_container_width=True, key=f"s1b_{tab_name}")
             st.caption(caption)
     if not show_types:
-        st.caption("The household-type, Inequality and Welfare tabs appear only when both the "
+        st.caption("The household-type, Incomes, Inequality and Welfare tabs appear only when both the "
                    "benchmark and the current settings have hand-to-mouth households (λ>0 in item F).")
-
-# --------------------------------------------------------------------------
-# S2. Policy performance along S1B's transition (benchmark -> current
-# settings): growth, incomes, and hours by household type.
-# --------------------------------------------------------------------------
-
-st.subheader("S2. Growth, incomes, and hours over time")
-st.write(
-    "How does the policy in Sections S1A–S1B -- moving from the **benchmark scenario** to the "
-    "**current settings** -- perform year by year? This section follows the same "
-    "transition path as Section S1B and asks three questions: Does the economy grow? "
-    "Whose income grows? And who works more or less? Inequality and welfare are in "
-    "S1A (steady states) and S1B (year by year). Year 0 is the year the "
-    "policy changes; the economy was at the benchmark steady state before that. "
-    "At the default settings the current settings *are* the benchmark, so every line "
-    "is flat: change a sidebar setting to create a policy to evaluate."
-)
-st.caption(
-    "Levels here come from the model's exact equations evaluated along Section S1B's "
-    "path of capital and optimizers' consumption, so for large policy changes the "
-    "first years can differ a little from Section S1B's charts, which use a linear "
-    "approximation for every variable. Both end at the same new steady state."
-)
-
-if benchmark_error or cumulative_path is None:
-    st.info("Policy performance needs Section S1B's transition path, which is "
-            "unavailable at these settings.")
-else:
-    two_types = show_types
-    if perf_bad.any():
-        st.warning(perf_warning)
-    perf_years = st.slider("Years to display", 5, 100, 50, 5, key=wkey("years_to_show_performance"))
-    yrs = np.arange(perf_years)
-    yrs_lvl = np.arange(-1, perf_years)  # year -1 = the benchmark steady state
-
-    def yoy(key):
-        """Year-over-year growth (%), year 0 measured against the benchmark."""
-        x = perf[key]
-        prev = np.concatenate([perf_bench[key], x[:-1]])
-        with np.errstate(divide="ignore", invalid="ignore"):
-            g = 100.0 * (x / prev - 1.0)
-        return np.where(np.isfinite(g), g, np.nan)
-
-    st.caption("All incomes and hours below are **per person** (per capita): "
-               "the population is normalized to 1, so the economy-wide series are averages "
-               "over everyone, and each household type's series is for one member of that "
-               "type.")
-    if not two_types:
-        st.info("The current settings have no hand-to-mouth households (λ = 0, item F), "
-                "so only economy-wide results are shown. Set λ above 0 to compare the "
-                "two household types.")
-
-    tab_g, tab_i, tab_h = st.tabs(["Growth", "Incomes", "Hours"])
-
-    with tab_g:
-        perf_chart("Output and labor productivity: year-over-year growth",
-            [("Output per person Y", yoy("Y"), "#2563eb"),
-             ("Labor productivity Y/N", yoy("prod"), "#16a34a"),
-             ("Hours per person N", yoy("N"), "#f59e0b")],
-            "% growth from the previous year", yrs, "perf_growth", "growth")
-        st.caption(
-            "Output growth splits into two parts: growth in labor productivity (output per "
-            "hour, Y/N) and growth in hours worked. Productivity grows when capital per "
-            "hour rises -- private capital K through saving, public capital Kᴳ through "
-            "public investment. Year 0 shows the jump when the policy starts: hours can "
-            "change at once, but capital cannot. After that, growth comes only from "
-            "capital adjusting, so it fades to zero as the economy reaches its new "
-            "steady state (this model has no long-run technological progress)."
-        )
-
-    with tab_i:
-        labor_specs = [("Labor income per person, average wN", yoy("labor"), "#2563eb"),
-                       ("Capital income per optimizer RKᴼ", yoy("capital_O"), "#7c3aed")]
-        if two_types:
-            labor_specs[1:1] = [("Labor income per optimizer wNᴼ", yoy("labor_O"), "#0d9488"),
-                                ("Labor income per hand-to-mouth household wNᴴ", yoy("labor_H"), "#db2777")]
-        perf_chart("Labor and capital income per person (before tax): year-over-year growth",
-            labor_specs, "% growth from the previous year", yrs, "perf_factor_income", "growth")
-        disp_specs = [("Per optimizer", yoy("income_O"), "#0d9488")]
-        if two_types:
-            disp_specs.append(("Per hand-to-mouth household", yoy("income_H"), "#db2777"))
-        perf_chart("Disposable income per person: year-over-year growth",
-            disp_specs, "% growth from the previous year", yrs, "perf_disp_income", "growth")
-        st.caption(
-            "Labor income is the wage times hours; capital income is the rental rate "
-            "times the capital stock. Only optimizers own capital, so all capital income "
-            "is theirs: each optimizer owns Kᴼ = K/(1−λ). **Disposable income** is what each household can spend, the "
-            "right-hand side of its budget constraint (Appendix A.3-A.4): for optimizers, "
-            "after-income-tax labor and capital income minus the lump-sum tax; for "
-            "hand-to-mouth households, their wage income plus cash welfare minus the "
-            "lump-sum tax. Both then pay the consumption tax on what they consume out "
-            "of it. A policy that raises the wage helps both groups' labor "
-            "income; a policy that raises the capital stock helps optimizers' capital "
-            "income; cash welfare and taxes move disposable income directly."
-        )
-
-    with tab_h:
-        if two_types:
-            perf_chart("Hours per person, by household type (% of time)",
-                [("Per optimizer Nᴼ", 100 * level(perf["NO"], perf_bench["NO"]), "#0d9488"),
-                 ("Per hand-to-mouth household Nᴴ", 100 * level(perf["NH"], perf_bench["NH"]), "#db2777"),
-                 ("Per person, average N", 100 * level(perf["N"], perf_bench["N"]), "#2563eb")],
-                "% of time endowment", yrs_lvl, "perf_hours", "change")
-            perf_chart("Hours gap: optimizers minus hand-to-mouth (Nᴼ − Nᴴ)",
-                [("Hours gap", 100 * level(perf["NO"] - perf["NH"],
-                                            perf_bench["NO"] - perf_bench["NH"]), "#6b7280")],
-                "Percentage points of time", yrs_lvl, "perf_hours_gap", "change")
-            st.caption(
-                "Year −1 is the benchmark. Both types face the same wage, so differences "
-                "in hours come from differences in wealth and taxes. Cash welfare and a "
-                "lower lump-sum tax make hand-to-mouth households richer, so they work "
-                "less. An income tax lowers optimizers' after-tax wage, so they work "
-                "less; hand-to-mouth households pay no income tax, so the tax alone does "
-                "not discourage their work. A consumption tax lowers what an hour of work "
-                "buys for both types alike. A positive gap means optimizers work more."
-            )
-        else:
-            st.info("Hours by household type need λ > 0 (item F).")
-
 
 # --------------------------------------------------------------------------
 # S3. Marginal Effects: an increase in G/Y (item D.2) starting from the current
@@ -1486,15 +1396,12 @@ with st.expander("ℹ️ Methodology notes"):
   and consumption-tax wedges distort households' margins independent of net revenue.
 - **S1B (Transition from Old to New Equilibrium)** imagines the economy starting at the benchmark's capital stocks with the
   current regime put permanently in place.
-- **Inequality and welfare** appear in S1A for the two steady states (income and
-  consumption ratios and a two-group Gini; the long-run consumption-equivalent welfare
-  gain) and in S1B's Inequality and Welfare tabs year by year (consumption-equivalent
-  gains each year and overall, with and without the transition).
-- **S2 (Growth, incomes, and hours over time)** follows S1B's transition path (benchmark →
-  current settings) and reports, year by year, growth of output, labor productivity,
-  hours, and labor/capital/disposable income by household type, and the hours gap.
-  Levels here and in S1B's Inequality and Welfare tabs come from solving each year's
-  static equations exactly at the path's capital and optimizers' consumption.
+- **Incomes, inequality and welfare** appear in S1A for the two steady states and in
+  S1B's Incomes, Inequality and Welfare tabs year by year: labor, capital and
+  disposable income by household type; income and consumption ratios, the hours gap
+  and a two-group Gini; and consumption-equivalent welfare gains (in S1B, each year
+  and overall including the transition). Along the path these come from solving each
+  year's static equations exactly at the path's capital and optimizers' consumption.
   Welfare uses the current φ for both
   scenarios and discounts with β = 1/(1+r), adding up the years shown ("Years to
   display", 50 by default) and counting the last one for every year after that.
