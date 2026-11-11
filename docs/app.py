@@ -790,7 +790,7 @@ else:
             ("Capital & interest rate", "Public capital Kᴳ", ss.KG),
             ("Capital & interest rate", "Real interest rate r (%)", ss.r * 100),
             ("Capital & interest rate", "Rental rate of capital R (%)", ss.theta_K * ss.Y / ss.K * 100),
-            ("Labor market", "Labor input N (% of time)", ss.N * 100),
+            ("Labor market", "Total Hours N (% of time)", ss.N * 100),
             ("Labor market", "Real wage w", ss.w),
             ("Labor market", "Labor productivity Y/N (output per hour)", ss.Y / ss.N),
             ("Government spending", "Government spending G (total)", ss.G),
@@ -956,7 +956,7 @@ if not benchmark_error and cumulative_path is not None:
                                     "returns to the benchmark's. R need not return: in steady state "
                                     "(1−τʸ)R = r + δ, so R moves with the income-tax rate. R comes "
                                     "from the model's exact equations along the path."),
-        "Labor market": ([("Labor input N (% of time)", from_bench(cp.N, b.N * 100), "#2563eb", b.N * 100),
+        "Labor market": ([("Total Hours N (% of time)", from_bench(cp.N, b.N * 100), "#2563eb", b.N * 100),
                           ("Real wage w", from_bench(cp.W, b.w), "#dc2626", b.w),
                           ("Labor productivity Y/N (output per hour)", from_bench(cp.Y - cp.N, b.Y / b.N),
                            "#16a34a", b.Y / b.N)],
