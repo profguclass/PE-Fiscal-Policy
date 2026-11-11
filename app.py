@@ -892,8 +892,8 @@ else:
         hide_index=True,
         use_container_width=True,
         column_config={
-            bench_left_label: st.column_config.NumberColumn(format="%.6f"),
-            bench_right_label: st.column_config.NumberColumn(format="%.6f"),
+            bench_left_label: st.column_config.NumberColumn(format="%.4f"),
+            bench_right_label: st.column_config.NumberColumn(format="%.4f"),
             bench_pct_label: st.column_config.NumberColumn(format="%+.2f%%"),
         },
     )
@@ -1194,8 +1194,8 @@ st.dataframe(
     hide_index=True,
     use_container_width=True,
     column_config={
-        marg_left_label: st.column_config.NumberColumn(format="%.6f"),
-        marg_right_label: st.column_config.NumberColumn(format="%.6f"),
+        marg_left_label: st.column_config.NumberColumn(format="%.4f"),
+        marg_right_label: st.column_config.NumberColumn(format="%.4f"),
         "% change": st.column_config.NumberColumn(format="%+.2f%%"),
     },
 )
