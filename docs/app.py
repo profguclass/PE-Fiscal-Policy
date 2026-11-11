@@ -629,30 +629,45 @@ st.write("Exact, closed-form solution of the model's long-run (“great ratios�
          f"{BENCH_f_GT_pct:.0f}% cash welfare, φ={BENCH_phi:.2f}, hand-to-mouth share "
          f"λ={BENCH_lam:.2f}; θ_N=0.58 and δ=10%) vs. "
          "**whatever the sidebar is currently set to**.")
+if not permanent:
+    st.info(f"**The change is temporary (item D.3).** G/Y stays at the current "
+            f"{s_G_new_pct:.0f}% for {duration_years} year(s) and then returns to the "
+            f"benchmark's {BENCH_s_G_pct:.0f}%, while the other current settings stay. So "
+            "column (B) is the equilibrium the economy ends at: the current settings with "
+            "the benchmark's G/Y. The years don't change that equilibrium, but they do "
+            "change the path to it and so the accumulated welfare rows, which add up the "
+            "same path as S2.")
 
 if benchmark_error:
     st.error(f"Could not compute the benchmark steady state: {benchmark_error}")
 else:
     bench_left_label = "(A) Benchmark's initial equilibrium"
-    bench_right_label = "(B) Current settings' long-run equilibrium"
+    bench_right_label = ("(B) Current settings' long-run equilibrium" if permanent else
+                         f"(B) Current settings' long-run equilibrium, G/Y back at {BENCH_s_G_pct:.0f}%")
+    # With a temporary change (item D.3) G/Y returns to the benchmark's, so the economy
+    # settles at ss_reverted: the current settings at the benchmark's G/Y, as in S2.
+    ss_B = ss_current if permanent else ss_reverted
     bench_pct_label = "(B/A−1) % change"
 
     # Household-type rows need hand-to-mouth households in both scenarios.
-    show_types = ss_benchmark.lam > 0 and ss_current.lam > 0
+    show_types = ss_benchmark.lam > 0 and ss_B.lam > 0
 
     bench_rows = equilibrium_rows(ss_benchmark, show_types)
-    current_rows = equilibrium_rows(ss_current, show_types)
+    current_rows = equilibrium_rows(ss_B, show_types)
     if show_types:
         # Welfare as an index, (A) = 100: (B) is 100 plus the consumption-equivalent gain of
         # living in steady state (B) rather than (A), so the % change column is that gain.
         out_bench = household_outcomes(ss_benchmark, np.zeros((4, 1)))
-        gains_ss = welfare_gains(out_bench, household_outcomes(ss_current, np.zeros((4, 1))),
+        gains_ss = welfare_gains(out_bench, household_outcomes(ss_B, np.zeros((4, 1))),
                                  1.0 / (1.0 + r_v), theta_L_bench, phi_v, long_run=True, last_year=0)
-        # Accumulated: lifetime welfare along the permanent move from (A) to (B), years
-        # of adjustment included (the same sum as S2's accumulated panels).
+        # Accumulated: lifetime welfare along the move from (A) to (B), years of
+        # adjustment included, permanent or temporary per item D.3 (the same path and
+        # sum as S2's accumulated panels).
         try:
-            s1_path = regime_transition_path(ss_benchmark, ss_current, T_sim=200)
-            gains_acc = welfare_gains(out_bench, household_outcomes(ss_current, s1_path.state),
+            s1_path = regime_transition_path(ss_benchmark, ss_current, ss_reverted=ss_reverted,
+                                             permanent=permanent, duration_years=duration_years,
+                                             T_sim=200)
+            gains_acc = welfare_gains(out_bench, household_outcomes(ss_B, s1_path.state),
                                       1.0 / (1.0 + r_v), theta_L_bench, phi_v)
         except Exception:  # noqa: BLE001
             gains_acc = {"O": np.nan, "H": np.nan, "all": np.nan}
@@ -910,11 +925,10 @@ if not benchmark_error and cumulative_path is not None:
             "rise in the benchmark's consumption that would make a household exactly as happy, "
             "counting own consumption, in-kind welfare and leisure through utility "
             "ln(C + φGᶜ) + θ_L·ln(1 − N). **Each year** (left) values that year alone; its "
-            "dashed line is the **new equilibrium** (S1's new-equilibrium value when the change "
-            "is permanent). **Accumulated** (right) values years 0 to the year on the axis "
+            "dashed line is the **new equilibrium** (S1's new-equilibrium value). **Accumulated** (right) values years 0 to the year on the axis "
             "together, discounted with β = 1/(1+r): the same gain every year that would add up "
             "to the same utility. Its dashed line is the whole move, years of adjustment "
-            "included (S1's accumulated value when the change is permanent): "
+            "included (S1's accumulated value): "
             + ", ".join(f"{100 + gains_acc[k]:.2f} {label}" for label, k, _ in welfare_types)
             + ". Both the benchmark and the policy are valued with the current φ (item C).")
     for tab, (tab_name, (series, caption)) in zip(st.tabs(list(s1b_tabs)), s1b_tabs.items()):
