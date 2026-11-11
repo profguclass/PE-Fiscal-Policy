@@ -954,7 +954,7 @@ st.write(f"Simulates **{change_word} G/Y by {abs(dG_pct):.1f} percentage points 
          f"{BENCH_s_G_pct + dG_pct:.1f}%, and in **(B) the current settings** from "
          f"{s_G_new_pct:.1f}% to {s_G_new_pct + dG_pct:.1f}%. For each of S1's variables X, "
          r"the table gives the **multiplier** $\Delta X/\Delta G$, the change in X per dollar "
-         "of the change in government spending, in each economy and the difference (B−A): "
+         "of the change in government spending, in each economy and the difference: "
          "**long-run** (the new steady state vs the starting one) and **on impact** (year 0, "
          "when the change starts and capital has not moved yet). The difference shows how the "
          "sidebar's settings change the effect of spending. For a cut, ΔG is negative, so a "
@@ -964,8 +964,8 @@ st.write(f"Simulates **{change_word} G/Y by {abs(dG_pct):.1f} percentage points 
          "keep S1's numbers and units, so rates, hours and other percentages change in "
          "percentage points per unit of G.")
 if dG_pct == 0:
-    st.info("Item D.2 is 0, so G/Y does not change and there is nothing to divide by: the "
-            "multipliers are blank. Set D.2 above or below 0 to compute them.")
+    st.info("Item D.2 is 0, so G/Y does not change and there is nothing to divide by, so no "
+            "multipliers are shown. Set D.2 above or below 0 (and click ▶ Run) to compute them.")
 
 
 def spending_experiment(r, A, theta_G, s_G, f_IG, f_GC, f_GT, tax_mix, phi, lam):
@@ -1039,21 +1039,26 @@ if missing:
             "(the transition-path solver lost saddle-path stability) -- only long-run "
             "multipliers are shown there.")
 
+# Columns (C)-(F): long-run and impact multipliers in (A) and (B), and their differences.
 mult_cols = {
-    "(A) Long-run ΔX/ΔG": lr_A, "(B) Long-run ΔX/ΔG": lr_B,
-    "(B−A) Long-run": [b - a for a, b in zip(lr_A, lr_B)],
-    "(A) Impact ΔX/ΔG": imp_A, "(B) Impact ΔX/ΔG": imp_B,
-    "(B−A) Impact": [b - a for a, b in zip(imp_A, imp_B)],
+    "(C)": lr_A, "(D)": lr_B, "(D−C)": [d - c for c, d in zip(lr_A, lr_B)],
+    "(E)": imp_A, "(F)": imp_B, "(F−E)": [f - e for e, f in zip(imp_A, imp_B)],
 }
 mult_table = pd.DataFrame({"Category": [cat for cat, _, _ in rows_s3], "Variable": numbered(rows_s3),
                            **mult_cols})
 
-st.dataframe(
-    mult_table,
-    hide_index=True,
-    use_container_width=True,
-    column_config={col: st.column_config.NumberColumn(format="%+.4f") for col in mult_cols},
-)
+if dG_pct != 0:
+    st.markdown(
+        "Columns: **(C)** long-run multiplier in (A) the benchmark · **(D)** long-run "
+        "multiplier in (B) the current settings · **(D−C)** their difference · **(E)** "
+        "impact (year-0) multiplier in (A) · **(F)** impact multiplier in (B) · **(F−E)** "
+        "their difference. Every multiplier is ΔX/ΔG.")
+    st.dataframe(
+        mult_table,
+        hide_index=True,
+        use_container_width=True,
+        column_config={col: st.column_config.NumberColumn(format="%+.4f") for col in mult_cols},
+    )
 if not permanent:
     st.info(
         "**The change is temporary (item D.3).** The long-run columns compare two "
@@ -1070,14 +1075,14 @@ if dG_pct != 0:
 # (percentage points per unit of G) get their own chart, since on one axis their
 # much larger numbers would flatten the other bars.
 is_pp = mult_table["Variable"].str.contains("%")
-for rows, title, height in (
+for rows, title, height in () if dG_pct == 0 else (
         (mult_table[~is_pp], "Multipliers ΔX/ΔG: change in each variable per dollar of change in government spending", 560),
         (mult_table[is_pp], "Rates and hours: percentage-point change per dollar of change in government spending", 480)):
     fig_mult = go.Figure()
-    for name, col, color in (("(A) Long-run", "(A) Long-run ΔX/ΔG", "#93c5fd"),
-                             ("(B) Long-run", "(B) Long-run ΔX/ΔG", "#2563eb"),
-                             ("(A) Impact", "(A) Impact ΔX/ΔG", "#fcd34d"),
-                             ("(B) Impact", "(B) Impact ΔX/ΔG", "#d97706")):
+    for name, col, color in (("(C) Long-run, benchmark", "(C)", "#93c5fd"),
+                             ("(D) Long-run, current", "(D)", "#2563eb"),
+                             ("(E) Impact, benchmark", "(E)", "#fcd34d"),
+                             ("(F) Impact, current", "(F)", "#d97706")):
         fig_mult.add_trace(go.Bar(name=name, x=rows["Variable"].str.strip(), y=rows[col], marker_color=color))
     fig_mult.add_hline(y=0, line_dash="dot", line_color="gray")
     fig_mult.update_layout(barmode="group", title=title,
@@ -1169,9 +1174,9 @@ with st.expander("ℹ️ Methodology notes"):
   economies, (A) the benchmark and (B) the current settings,
   while every other setting stays as it is. For each of S1's variables X except
   inequality and welfare, it reports the multiplier ΔX/ΔG -- the change in X per dollar
-  of the change in government spending -- in each economy and the difference (B−A), long-run
-  (from the two steady states) and on impact (year 0 of the transition path, whose
-  static equations are solved exactly).
+  of the change in government spending -- long-run (from the two steady states) and on
+  impact (year 0 of the transition path, whose static equations are solved exactly):
+  (C) and (E) in (A), (D) and (F) in (B), and the differences (D−C) and (F−E).
         """
     )
 
