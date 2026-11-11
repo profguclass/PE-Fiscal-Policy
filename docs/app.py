@@ -830,17 +830,23 @@ else:
             ]
             out = household_outcomes(ss, np.zeros((4, 1)))  # the steady state's incomes
             y_O, y_H = out["income_O"][0], out["income_H"][0]
-            inc = "Incomes (per person)"
+            inc = "Household's Income"
+            m_O, m_H = out["labor_O"][0] + out["capital_O"][0], out["labor_H"][0]  # market income
             rows += [
                 (inc, "Labor income, average wN", out["labor"][0]),
                 (inc, "Labor income per optimizer wNᴼ", out["labor_O"][0]),
                 (inc, "Labor income per hand-to-mouth household wNᴴ", out["labor_H"][0]),
                 (inc, "Capital income per optimizer RKᴼ", out["capital_O"][0]),
+                (inc, "Market income per optimizer wNᴼ + RKᴼ (per person)", m_O),
+                (inc, "Market income of optimizers (1−λ)·(wNᴼ + RKᴼ) (group total)", (1 - ss.lam) * m_O),
+                (inc, "Market income per hand-to-mouth household wNᴴ (per person)", m_H),
+                (inc, "Market income of hand-to-mouth households λ·wNᴴ (group total)", ss.lam * m_H),
                 (inc, "Disposable income per optimizer yᴼ", y_O),
                 (inc, "Disposable income per hand-to-mouth household yᴴ", y_H),
             ]
             q = "Inequality"
             rows += [
+                (q, "Gini coefficient of market income", two_group_gini(ss.lam, m_H, m_O)),
                 (q, "Gini coefficient of disposable income", two_group_gini(ss.lam, y_H, y_O)),
                 (q, "Disposable income ratio yᴼ/yᴴ (per person)", y_O / y_H),
                 (q, "Consumption ratio Cᴼ/Cᴴ (per person)", ss.CO / ss.CH),
@@ -871,7 +877,9 @@ else:
                 current_rows.append(("Welfare", var, 100.0 + gains[k]))
     bench_table = pd.DataFrame({
         "Category": [cat for cat, _, _ in bench_rows],
-        "Variable": [var for _, var, _ in bench_rows],
+        # Numbered names, keeping the indent of G's parts: "  12. Public investment Iᴳ".
+        "Variable": [f"{var[:len(var) - len(var.lstrip())]}{i}. {var.lstrip()}"
+                     for i, (_, var, _) in enumerate(bench_rows, start=1)],
         bench_left_label: [x for _, _, x in bench_rows],
         bench_right_label: [x for _, _, x in current_rows],
     })
@@ -1041,24 +1049,39 @@ if not benchmark_error and cumulative_path is not None:
         def gini(out, lam):
             return two_group_gini(lam, out["income_H"], out["income_O"])
 
-        s1b_tabs["Incomes (per person)"] = (
+        def market(out):  # market income (labor + capital) per optimizer, per hand-to-mouth household
+            return out["labor_O"] + out["capital_O"], out["labor_H"]
+
+        (m_O, m_H), (mb_O, mb_H) = market(perf), market(perf_bench)
+        s1b_tabs["Household's Income"] = (
             [(name, perf[k], color, perf_bench[k][0]) for name, k, color in (
                 ("Labor income, average wN", "labor", "#2563eb"),
                 ("Labor income per optimizer wNᴼ", "labor_O", "#0d9488"),
                 ("Labor income per hand-to-mouth household wNᴴ", "labor_H", "#db2777"),
-                ("Capital income per optimizer RKᴼ", "capital_O", "#7c3aed"),
+                ("Capital income per optimizer RKᴼ", "capital_O", "#7c3aed"))]
+            + [("Market income per optimizer wNᴼ + RKᴼ (per person)", m_O, "#0d9488", mb_O[0]),
+               ("Market income of optimizers (1−λ)·(wNᴼ + RKᴼ) (group total)", (1 - e.lam) * m_O,
+                "#0d9488", (1 - b.lam) * mb_O[0]),
+               ("Market income per hand-to-mouth household wNᴴ (per person)", m_H, "#db2777", mb_H[0]),
+               ("Market income of hand-to-mouth households λ·wNᴴ (group total)", e.lam * m_H,
+                "#db2777", b.lam * mb_H[0])]
+            + [(name, perf[k], color, perf_bench[k][0]) for name, k, color in (
                 ("Disposable income per optimizer yᴼ", "income_O", "#0d9488"),
                 ("Disposable income per hand-to-mouth household yᴴ", "income_H", "#db2777"))],
             "Labor income is the wage times hours; capital income is the rental rate times "
             "the capital stock. Only optimizers own capital, so all capital income is theirs: "
-            "each optimizer owns Kᴼ = K/(1−λ). **Disposable income** is what each household "
+            "each optimizer owns Kᴼ = K/(1−λ). **Market income** is labor plus capital income "
+            "before taxes and without cash welfare; the two group totals add up to wN + RK. "
+            "**Disposable income** is what each household "
             "can spend, the right-hand side of its budget constraint (Appendix A.3-A.4): for "
             "optimizers, after-income-tax labor and capital income minus the lump-sum tax; for "
             "hand-to-mouth households, their wage income plus cash welfare minus the lump-sum "
             "tax. Both then pay the consumption tax on what they consume out of it. These come "
             "from the model's exact equations along the path.")
         s1b_tabs["Inequality"] = (
-            [("Gini coefficient of disposable income", gini(perf, e.lam), "#dc2626",
+            [("Gini coefficient of market income", two_group_gini(e.lam, m_H, m_O), "#f59e0b",
+              two_group_gini(b.lam, mb_H, mb_O)[0]),
+             ("Gini coefficient of disposable income", gini(perf, e.lam), "#dc2626",
               gini(perf_bench, b.lam)[0]),
              ("Disposable income ratio yᴼ/yᴴ (per person)", perf["income_O"] / perf["income_H"],
               "#2563eb", perf_bench["income_O"][0] / perf_bench["income_H"][0]),
@@ -1071,6 +1094,8 @@ if not benchmark_error and cumulative_path is not None:
             "hand-to-mouth household (2 means twice as much). The Gini coefficient runs from 0 "
             "(equal) to 1; with two groups it equals λ(1−λ)·|yᴼ − yᴴ| / (average income), so it "
             "also depends on the groups' sizes, and it ignores inequality within each group. "
+            "Comparing the Gini of market income (before taxes and cash welfare) with that of "
+            "disposable income shows how much taxes and transfers reduce inequality. "
             "Optimizers' disposable income includes what they save, so the consumption ratio "
             "is often a better guide to living standards. Both types face the same wage, so "
             "the hours gap comes from differences in wealth and taxes: cash welfare and a lower "
@@ -1112,7 +1137,7 @@ if not benchmark_error and cumulative_path is not None:
             st.plotly_chart(level_panels(series, yrs), use_container_width=True, key=f"s1b_{tab_name}")
             st.caption(caption)
     if not show_types:
-        st.caption("The household-type, Incomes, Inequality and Welfare tabs appear only when both the "
+        st.caption("The household-type, Household's Income, Inequality and Welfare tabs appear only when both the "
                    "benchmark and the current settings have hand-to-mouth households (λ>0 in item F).")
 
 # --------------------------------------------------------------------------
@@ -1442,9 +1467,9 @@ with st.expander("ℹ️ Methodology notes"):
 - **S2 (Transition from Old to New Equilibrium)** imagines the economy starting at the benchmark's capital stocks with the
   current regime put permanently in place.
 - **Incomes, inequality and welfare** appear in S1 for the two steady states and in
-  S2's Incomes, Inequality and Welfare tabs year by year: labor, capital and
-  disposable income by household type; income and consumption ratios, the hours gap
-  and a two-group Gini; and welfare indexes (benchmark = 100) split into the new
+  S2's Household's Income, Inequality and Welfare tabs year by year: labor, capital,
+  market and disposable income by household type; income and consumption ratios, the
+  hours gap and two-group Ginis of market and disposable income; and welfare indexes (benchmark = 100) split into the new
   equilibrium and the value accumulated over the move from the old to the new
   equilibrium (in S2, each year and accumulated year by year). Along the path these
   come from solving each year's static equations exactly at the path's capital and
