@@ -57,7 +57,7 @@ both, and compares the multipliers.
   holding everything else fixed. For S1's variables 1–36, it reports the
   multipliers ΔX/ΔG, the change in X per dollar of the change in spending,
   long-run and on impact (year 0): (C) and (E) in the benchmark, (D) and (F)
-  in the current settings, and the differences (D−C) and (F−E).
+  in the current settings, and the differences (D-C) and (F-E).
   Bar charts compare them.
 
 An Appendix, opened in a separate window, tells the model agent by agent, with
