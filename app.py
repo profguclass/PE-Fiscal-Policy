@@ -937,10 +937,16 @@ if not benchmark_error and cumulative_path is not None:
                                       R_bench * 100)],
                                     "Watch how far and how fast private (and, if θ_G>0, public) "
                                     "capital has to move to reach the new regime's steady state. "
-                                    "r returns to the benchmark's, since r is fixed in steady state. "
-                                    "R need not: in steady state (1−τʸ)R = r + δ, so R moves with "
-                                    "the income-tax rate. R comes from the model's exact equations "
-                                    "along the path."),
+                                    "**r is fixed only in steady state**: there 1 + r = 1/β, so every "
+                                    "steady state (the benchmark, the current settings, the end of "
+                                    "the path) has the same r. **Along the path r is the market "
+                                    "return** and moves: the Euler equation sets "
+                                    "rₜ = (1−τʸₜ₊₁)·Rₜ₊₁ − δ, the after-tax return on capital "
+                                    "next year. At year 0 capital is stuck at its old level while "
+                                    "hours jump, so R, and with it r, jumps; as capital adjusts, r "
+                                    "returns to the benchmark's. R need not return: in steady state "
+                                    "(1−τʸ)R = r + δ, so R moves with the income-tax rate. R comes "
+                                    "from the model's exact equations along the path."),
         "Labor market": ([("Labor input N (% of time)", from_bench(cp.N, b.N * 100), "#2563eb", b.N * 100),
                           ("Real wage w", from_bench(cp.W, b.w), "#dc2626", b.w)],
                          "Labor and the wage jump immediately to reflect the new regime's prices; "
