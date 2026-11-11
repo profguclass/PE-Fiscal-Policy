@@ -254,10 +254,34 @@ def render():
     )
     with st.container(border=True):
         st.markdown("**In symbols**")
-        st.markdown(r"Labor-leisure:")
-        st.latex(r"\theta_L\,\frac{C^O_t+\phi\,G^C_t}{1-N^O_t} = \frac{(1-\tau^Y_t)\,w_t}{1+\tau^C_t}")
-        st.markdown(r"Euler equation:")
-        st.latex(r"\frac{1}{(1+\tau^C_t)(C^O_t+\phi\,G^C_t)} = \beta\,\frac{1+(1-\tau^Y_{t+1})\,R_{t+1}-\delta}{(1+\tau^C_{t+1})(C^O_{t+1}+\phi\,G^C_{t+1})}")
+        st.markdown(
+            r"**Step 1. Lagrangian.** Replace $I^O_t$ with $K^O_{t+1}-(1-\delta)K^O_t$ from the "
+            r"law of motion, and attach a multiplier $\mu_t$ to each year's budget. $\mu_t$ is the "
+            r"happiness that one more unit of goods brings in year $t$."
+        )
+        st.latex(
+            r"\begin{aligned}\mathcal{L} = \sum_{t=0}^{\infty} \beta^t \Big\{ "
+            r"&\ln\big(C^O_t+\phi\,G^C_t\big) + \theta_L \ln\big(1-N^O_t\big) \\ "
+            r"&+ \mu_t\Big[(1-\tau^Y_t)\big(w_t N^O_t + R_t K^O_t\big) - T_t "
+            r"- (1+\tau^C_t)\,C^O_t - K^O_{t+1} + (1-\delta)K^O_t\Big] \Big\}\end{aligned}"
+        )
+        st.markdown(r"**Step 2. First-order conditions.** Set the derivative with respect to each choice to zero.")
+        st.latex(r"\partial C^O_t:\quad \frac{1}{C^O_t+\phi\,G^C_t} = \mu_t\,(1+\tau^C_t)")
+        st.latex(r"\partial N^O_t:\quad \frac{\theta_L}{1-N^O_t} = \mu_t\,(1-\tau^Y_t)\,w_t")
+        st.latex(r"\partial K^O_{t+1}:\quad \mu_t = \beta\,\mu_{t+1}\big[1+(1-\tau^Y_{t+1})\,R_{t+1}-\delta\big]")
+        st.markdown(
+            r"$K^O_{t+1}$ appears twice: in year $t$'s budget, where buying it costs $\mu_t$, and "
+            r"in year $t+1$'s budget, where it pays $(1-\tau^Y_{t+1})R_{t+1}+(1-\delta)$, "
+            r"discounted by $\beta$."
+        )
+        st.markdown(r"**Step 3. Labor-leisure.** Divide the $\partial N^O_t$ condition by the $\partial C^O_t$ condition; $\mu_t$ cancels.")
+        st.latex(r"\underbrace{\theta_L\,\frac{C^O_t+\phi\,G^C_t}{1-N^O_t}}_{\text{value of an hour of leisure, in goods}} = \underbrace{\frac{(1-\tau^Y_t)\,w_t}{1+\tau^C_t}}_{\text{goods an hour of work buys, after taxes}}")
+        st.markdown(
+            r"**Step 4. Euler equation.** The $\partial C^O_t$ condition gives "
+            r"$\mu_t = 1/\big[(1+\tau^C_t)(C^O_t+\phi\,G^C_t)\big]$, and the same for $t+1$. "
+            r"Substitute both into the $\partial K^O_{t+1}$ condition."
+        )
+        st.latex(r"\underbrace{\frac{1}{(1+\tau^C_t)(C^O_t+\phi\,G^C_t)}}_{\text{happiness lost by giving up a unit of goods today}} = \underbrace{\beta\,\frac{1+(1-\tau^Y_{t+1})\,R_{t+1}-\delta}{(1+\tau^C_{t+1})(C^O_{t+1}+\phi\,G^C_{t+1})}}_{\text{discounted happiness gained by investing it}}")
         st.markdown(
             r"$\tau^Y$ enters both conditions; $\tau^C$ enters the first and cancels from the "
             r"second when $\tau^C_t=\tau^C_{t+1}$; $T_t$ enters neither."
