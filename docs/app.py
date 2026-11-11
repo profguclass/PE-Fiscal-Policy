@@ -77,12 +77,27 @@ def line_fig(title, series_specs, yaxis_title, yrs, mark_new_level=False):
     return fig
 
 
+def rate_fig(path, years_to_show, baseline, mark_new_level=False):
+    """The real-interest-rate chart, in basis points from the baseline."""
+    yrs = path.years[:years_to_show]
+    fig_r = go.Figure(go.Scatter(x=yrs, y=path.r_bp[:years_to_show], mode="lines+markers",
+                                  line=dict(color="#7c3aed", width=2.5), marker=dict(size=5)))
+    fig_r.add_hline(y=0, line_dash="dot", line_color="gray")
+    if mark_new_level:
+        fig_r.add_hline(y=path.r_bp[-1], line_dash="dash", line_color="#7c3aed", line_width=1.5)
+    fig_r.update_layout(title=f"Real interest rate, deviation from {baseline}",
+                         xaxis_title="Years after the change", yaxis_title="Basis points",
+                         height=450, margin=dict(t=50, b=20))
+    fig_r.update_yaxes(range=focus_range([path.r_bp[:years_to_show]]
+                                         + ([[path.r_bp[-1]]] if mark_new_level else [])))
+    return fig_r
+
+
 def render_transition_tabs(path, slider_key, baseline, caption_commodity, caption_labor, caption_financial,
-                           extra_tabs=None, mark_new_level=False):
+                           extra_tabs=None):
     """Renders the Commodity/Labor/Financial-market tabbed transition-path charts
     shared by both time-series panels, given any TransitionPath-like object.
-    extra_tabs maps further tab names to functions of the years to display.
-    mark_new_level draws dashed lines at each series' new-equilibrium level."""
+    extra_tabs maps further tab names to functions of the years to display."""
     years_to_show = st.slider("Years to display", 5, 100, 50, 5, key=slider_key)
     yrs = path.years[:years_to_show]
 
@@ -105,7 +120,7 @@ def render_transition_tabs(path, slider_key, baseline, caption_commodity, captio
             [("Output (Y)", path.Y, "#2563eb"), ("Consumption (C)", path.C, "#16a34a"),
              ("Investment (I)", path.I, "#f59e0b"), ("Government spending (G)", path.G, "#6b7280")]
             + split_c,
-            f"% deviation from {baseline}", yrs, mark_new_level), use_container_width=True,
+            f"% deviation from {baseline}", yrs), use_container_width=True,
             key=f"{slider_key}_commodity")
         st.caption(caption_commodity)
 
@@ -113,7 +128,7 @@ def render_transition_tabs(path, slider_key, baseline, caption_commodity, captio
         st.plotly_chart(line_fig(
             "Labor input and the real wage",
             [("Labor input (N)", path.N, "#2563eb"), ("Real wage (w)", path.W, "#dc2626")] + split_n,
-            f"% deviation from {baseline}", yrs, mark_new_level), use_container_width=True,
+            f"% deviation from {baseline}", yrs), use_container_width=True,
             key=f"{slider_key}_labor")
         st.caption(caption_labor)
 
@@ -121,19 +136,10 @@ def render_transition_tabs(path, slider_key, baseline, caption_commodity, captio
         st.plotly_chart(line_fig(
             "Private and public capital stocks",
             [("Private capital (K)", path.K, "#2563eb"), ("Public capital (Kᴳ)", path.KG, "#16a34a")],
-            f"% deviation from {baseline}", yrs, mark_new_level), use_container_width=True,
+            f"% deviation from {baseline}", yrs), use_container_width=True,
             key=f"{slider_key}_capital")
-        fig_r = go.Figure(go.Scatter(x=yrs, y=path.r_bp[:years_to_show], mode="lines+markers",
-                                      line=dict(color="#7c3aed", width=2.5), marker=dict(size=5)))
-        fig_r.add_hline(y=0, line_dash="dot", line_color="gray")
-        if mark_new_level:
-            fig_r.add_hline(y=path.r_bp[-1], line_dash="dash", line_color="#7c3aed", line_width=1.5)
-        fig_r.update_layout(title=f"Real interest rate, deviation from {baseline}",
-                             xaxis_title="Years after the change", yaxis_title="Basis points",
-                             height=450, margin=dict(t=50, b=20))
-        fig_r.update_yaxes(range=focus_range([path.r_bp[:years_to_show]]
-                                             + ([[path.r_bp[-1]]] if mark_new_level else [])))
-        st.plotly_chart(fig_r, use_container_width=True, key=f"{slider_key}_rate")
+        st.plotly_chart(rate_fig(path, years_to_show, baseline), use_container_width=True,
+                        key=f"{slider_key}_rate")
         st.caption(caption_financial)
 
 
@@ -753,28 +759,48 @@ else:
     bench_right_label = "(B) Current settings' long-run equilibrium"
     bench_pct_label = "(B/A−1) % change"
 
+    # Household-type rows need hand-to-mouth households in both scenarios.
+    show_types = ss_benchmark.lam > 0 and ss_current.lam > 0
+
+    def s1a_rows(ss):
+        """(category, variable, level) for every row of S1A's table."""
+        rows = [
+            ("Output & demand", "Output Y", ss.Y),
+            ("Output & demand", "Consumption C", ss.C),
+            ("Output & demand", "Investment I", ss.I),
+            ("Capital & interest rate", "Private capital K", ss.K),
+            ("Capital & interest rate", "Public capital Kᴳ", ss.KG),
+            ("Labor market", "Labor input N (% of time)", ss.N * 100),
+            ("Labor market", "Real wage w", ss.w),
+            ("Government spending", "Government spending G (total)", ss.G),
+            ("Government spending", "  Public investment Iᴳ", ss.IG),
+            ("Government spending", "  In-kind welfare Gᶜ", ss.GC),
+            ("Government spending", "  Cash welfare Gᵀ", ss.GT),
+            ("Taxes", "Income-tax rate τʸ (%)", ss.tau_y * 100),
+            ("Taxes", "Consumption-tax rate τᶜ (%)", ss.tau_c * 100),
+            ("Taxes", "Lump-sum tax T (per person)", ss.T),
+        ]
+        if show_types:
+            o, h = "Optimizers (share 1−λ)", "Hand-to-mouth (share λ)"
+            rows += [
+                (o, "Consumption Cᴼ (per person)", ss.CO),
+                (o, "Consumption (1−λ)·Cᴼ (group total)", (1 - ss.lam) * ss.CO),
+                (o, "Hours Nᴼ (% of time, per person)", ss.NO * 100),
+                (o, "Hours (1−λ)·Nᴼ (% of all time, group total)", (1 - ss.lam) * ss.NO * 100),
+                (h, "Consumption Cᴴ (per person)", ss.CH),
+                (h, "Consumption λ·Cᴴ (group total)", ss.lam * ss.CH),
+                (h, "Hours Nᴴ (% of time, per person)", ss.NH * 100),
+                (h, "Hours λ·Nᴴ (% of all time, group total)", ss.lam * ss.NH * 100),
+            ]
+        return rows
+
+    bench_rows, current_rows = s1a_rows(ss_benchmark), s1a_rows(ss_current)
     bench_table = pd.DataFrame({
-        "Variable": ["Output Y", "Consumption C", "Investment I", "Private capital K",
-                     "Public capital Kᴳ", "Government spending G (total)",
-                     "  Public investment Iᴳ", "  In-kind welfare Gᶜ", "  Cash welfare Gᵀ",
-                     "Labor input N (% of time)", "Real wage w", "Income-tax rate τʸ (%)",
-                     "Consumption-tax rate τᶜ (%)", "Lump-sum tax T (per person)"],
-        bench_left_label: [ss_benchmark.Y, ss_benchmark.C, ss_benchmark.I, ss_benchmark.K, ss_benchmark.KG,
-                            ss_benchmark.G, ss_benchmark.IG, ss_benchmark.GC, ss_benchmark.GT, ss_benchmark.N * 100,
-                            ss_benchmark.w, ss_benchmark.tau_y * 100, ss_benchmark.tau_c * 100,
-                            ss_benchmark.T],
-        bench_right_label: [ss_current.Y, ss_current.C, ss_current.I, ss_current.K, ss_current.KG, ss_current.G,
-                             ss_current.IG, ss_current.GC, ss_current.GT, ss_current.N * 100,
-                             ss_current.w, ss_current.tau_y * 100, ss_current.tau_c * 100,
-                             ss_current.T],
+        "Category": [cat for cat, _, _ in bench_rows],
+        "Variable": [var for _, var, _ in bench_rows],
+        bench_left_label: [x for _, _, x in bench_rows],
+        bench_right_label: [x for _, _, x in current_rows],
     })
-    if ss_benchmark.lam > 0 and ss_current.lam > 0:
-        bench_table = pd.concat([bench_table, pd.DataFrame({
-            "Variable": ["Optimizers' consumption Cᴼ (per person)", "Hand-to-mouth consumption Cᴴ (per person)",
-                         "Optimizers' hours Nᴼ (% of time)", "Hand-to-mouth hours Nᴴ (% of time)"],
-            bench_left_label: [ss_benchmark.CO, ss_benchmark.CH, ss_benchmark.NO * 100, ss_benchmark.NH * 100],
-            bench_right_label: [ss_current.CO, ss_current.CH, ss_current.NO * 100, ss_current.NH * 100],
-        })], ignore_index=True)
     bench_both_zero = (bench_table[bench_left_label] == 0) & (bench_table[bench_right_label] == 0)
     bench_table[bench_pct_label] = 100 * (bench_table[bench_right_label] / bench_table[bench_left_label].replace(0, np.nan) - 1)
     bench_table.loc[bench_both_zero, bench_pct_label] = 0.0
@@ -816,20 +842,90 @@ else:
         cumulative_path = regime_transition_path(ss_benchmark, ss_current, ss_reverted=ss_reverted,
                                                   permanent=permanent, duration_years=duration_years,
                                                   T_sim=200)
-        render_transition_tabs(
-            cumulative_path, wkey("years_to_show_cumulative"), "the benchmark",
-            caption_commodity="Here the "
-                "\"shock\" is the *entire* gap between the benchmark and the sidebar's "
-                "current settings, not a single isolated policy lever.",
-            caption_labor="Labor and the wage jump immediately to reflect the new "
-                "regime's prices; only capital is predetermined and adjusts gradually.",
-            caption_financial="Watch how far and how fast private (and, if θ_G>0, "
-                "public) capital has to move to reach the new regime's steady state.",
-            mark_new_level=True,
-        )
     except Exception as exc:  # noqa: BLE001
         cumulative_path = None
         st.error(f"Could not compute the cumulative transition path: {exc}")
+
+if not benchmark_error and cumulative_path is not None:
+    cp = cumulative_path
+    ss_end = ss_current if permanent else ss_reverted  # the equilibrium the path settles at
+    exact = household_outcomes(ss_end, cp.state)  # exact tax levels along the path, as in S2
+
+    def vs_bench(levels, bench_level):
+        """% (log) deviation of a path of levels from a benchmark level; NaN where
+        either is zero, since a % change from or to zero is undefined."""
+        levels = np.asarray(levels, dtype=float)
+        if bench_level <= 0:
+            return np.full_like(levels, np.nan)
+        with np.errstate(divide="ignore", invalid="ignore"):
+            return np.where(levels > 0, 100.0 * np.log(levels / bench_level), np.nan)
+
+    g_scale = np.exp(cp.state[2])  # each part of G moves one for one with total G
+    s1b_tabs = {
+        "Output & demand": ([("Output (Y)", cp.Y, "#2563eb"), ("Consumption (C)", cp.C, "#16a34a"),
+                             ("Investment (I)", cp.I, "#f59e0b")],
+                            "Here the \"shock\" is the *entire* gap between the benchmark and the "
+                            "sidebar's current settings, not a single isolated policy lever."),
+        "Capital & interest rate": ([("Private capital (K)", cp.K, "#2563eb"),
+                                     ("Public capital (Kᴳ)", cp.KG, "#16a34a")],
+                                    "Watch how far and how fast private (and, if θ_G>0, public) "
+                                    "capital has to move to reach the new regime's steady state."),
+        "Labor market": ([("Labor input (N)", cp.N, "#2563eb"), ("Real wage (w)", cp.W, "#dc2626")],
+                         "Labor and the wage jump immediately to reflect the new regime's prices; "
+                         "only capital is predetermined and adjusts gradually."),
+        "Government spending": ([("Government spending (G)", cp.G, "#6b7280"),
+                                 ("Public investment (Iᴳ)", vs_bench(ss_end.IG * g_scale, ss_benchmark.IG), "#2563eb"),
+                                 ("In-kind welfare (Gᶜ)", vs_bench(ss_end.GC * g_scale, ss_benchmark.GC), "#16a34a"),
+                                 ("Cash welfare (Gᵀ)", vs_bench(ss_end.GT * g_scale, ss_benchmark.GT), "#db2777")],
+                                "Each part of G moves one for one with total G; the parts start "
+                                "away from zero when the composition (item E) differs from the benchmark's."),
+        "Taxes": ([("Income-tax rate (τʸ)", vs_bench(exact["tau_y"], ss_benchmark.tau_y), "#2563eb"),
+                   ("Consumption-tax rate (τᶜ)", vs_bench(exact["tau_c"], ss_benchmark.tau_c), "#16a34a"),
+                   ("Lump-sum tax (T)", vs_bench(exact["T"], ss_benchmark.T), "#f59e0b")],
+                  "Tax rates adjust every year so each tax raises its share of G (item A). They "
+                  "come from the model's exact equations along the path, as in S2. A tax that is "
+                  "zero in either scenario has no % change and is left out."),
+    }
+    if show_types:
+        o_shift = 100.0 * np.log((1 - ss_end.lam) / (1 - ss_benchmark.lam))
+        h_shift = 100.0 * np.log(ss_end.lam / ss_benchmark.lam)
+        group_note = ("Per person is one household of the type; group total is the type's share "
+                      "of the economy's total, e.g. (1−λ)·Cᴼ. They move together unless λ (item F) "
+                      "differs from the benchmark's, which shifts the group total by the change in "
+                      "the group's size.")
+        s1b_tabs["Optimizers (share 1−λ)"] = (
+            [("Consumption Cᴼ (per person)", cp.CO, "#0d9488"),
+             ("Consumption (1−λ)·Cᴼ (group total)", cp.CO + o_shift, "#2563eb"),
+             ("Hours Nᴼ (per person)", cp.NO, "#f59e0b"),
+             ("Hours (1−λ)·Nᴼ (group total)", cp.NO + o_shift, "#dc2626")], group_note)
+        nh_works = ss_benchmark.NH > 0 and ss_end.NH > 0
+        s1b_tabs["Hand-to-mouth (share λ)"] = (
+            [("Consumption Cᴴ (per person)", cp.CH, "#db2777"),
+             ("Consumption λ·Cᴴ (group total)", cp.CH + h_shift, "#2563eb")]
+            + ([("Hours Nᴴ (per person)", cp.NH, "#f59e0b"),
+                ("Hours λ·Nᴴ (group total)", cp.NH + h_shift, "#dc2626")] if nh_works else []),
+            group_note + ("" if nh_works else " Their hours are zero in at least one scenario, "
+                          "so hours have no % change and are left out."))
+
+    years_to_show = st.slider("Years to display", 5, 100, 50, 5, key=wkey("years_to_show_cumulative"))
+    yrs = cp.years[:years_to_show]
+    for tab, (tab_name, (series, caption)) in zip(st.tabs(list(s1b_tabs)), s1b_tabs.items()):
+        with tab:
+            # Drop series with no defined % change (a level that is zero in either scenario).
+            series = [spec for spec in series if np.isfinite(spec[1][-1])]
+            if series:
+                st.plotly_chart(line_fig(tab_name, series, "% deviation from the benchmark", yrs,
+                                         mark_new_level=True),
+                                use_container_width=True, key=f"s1b_{tab_name}")
+            else:
+                st.info("No series here has a defined % change at these settings.")
+            if tab_name == "Capital & interest rate":
+                st.plotly_chart(rate_fig(cp, years_to_show, "the benchmark", mark_new_level=True),
+                                use_container_width=True, key="s1b_rate")
+            st.caption(caption)
+    if not show_types:
+        st.caption("The two household-type tabs appear only when both the benchmark and the "
+                   "current settings have hand-to-mouth households (λ>0 in item F).")
 
 # --------------------------------------------------------------------------
 # S2. Policy performance along S1B's transition (benchmark -> current
