@@ -57,13 +57,16 @@ def focus_range(arrays):
 
 def line_fig(title, series_specs, yaxis_title, yrs, mark_new_level=False):
     """mark_new_level draws a dashed line at each series' last value, the level it
-    settles at in the new equilibrium."""
+    settles at in the new equilibrium. It shares the series' legend group, so clicking
+    the series in the legend hides or shows both."""
     fig = go.Figure()
     for name, arr, color in series_specs:
-        fig.add_trace(go.Scatter(x=yrs, y=arr[:len(yrs)], mode="lines+markers",
+        fig.add_trace(go.Scatter(x=yrs, y=arr[:len(yrs)], mode="lines+markers", legendgroup=name,
                                   name=name, line=dict(color=color, width=2.5), marker=dict(size=5)))
         if mark_new_level:
-            fig.add_hline(y=arr[-1], line_dash="dash", line_color=color, line_width=1.5)
+            fig.add_trace(go.Scatter(x=[yrs[0], yrs[-1]], y=[arr[-1], arr[-1]], mode="lines",
+                                      legendgroup=name, showlegend=False, hoverinfo="skip",
+                                      line=dict(color=color, width=1.5, dash="dash")))
     fig.add_hline(y=0, line_dash="dot", line_color="gray")
     fig.update_layout(title=dict(text=title, y=0.98, yanchor="top"),
                        xaxis_title="Years after the change", yaxis_title=yaxis_title,

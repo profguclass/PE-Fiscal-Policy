@@ -376,7 +376,7 @@ def render():
             r"labor-leisure rule, multiply both sides by $(1+\tau^C_t)(1-N^H_t)$, and solve "
             r"for $N^H_t$:"
         )
-        st.latex(r"N^H_t = \max\left\{0,\ \frac{w_t - \theta_L\left(\dfrac{G^T_t}{\lambda} - T_t + (1+\tau^C_t)\,\phi\,G^C_t\right)}{(1+\theta_L)\,w_t}\right\}")
+        st.latex(r"N^H_t = \max\Bigg\{0,\ \frac{w_t - \theta_L\left(\dfrac{G^T_t}{\lambda} - T_t + (1+\tau^C_t)\,\phi\,G^C_t\right)}{(1+\theta_L)\,w_t}\Bigg\}")
         st.latex(r"C^H_t = \frac{w_t N^H_t + G^T_t/\lambda - T_t}{1+\tau^C_t}")
 
     st.subheader("A.5 Government")
