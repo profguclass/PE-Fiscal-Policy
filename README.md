@@ -25,7 +25,8 @@ this benchmark with their own.
 
 ## What the app shows
 
-**Part I. The benchmark vs the sidebar's settings**
+S1 and S2 compare (A) the benchmark with (B) the economy under the sidebar's
+current settings; S3 starts from (B) and raises only government spending.
 
 - **S1. Comparison between Old and New Equilibrium:** steady-state levels and
   % changes, benchmark vs the current settings, including incomes by household
@@ -35,12 +36,9 @@ this benchmark with their own.
   benchmark to the current settings, in levels, with dashed lines at each series'
   new level, including incomes, inequality and welfare year by year.
 
-**Part II. The Effect of Raising G/Y**
-
-- **S3. Now vs After raising G/Y, in levels and over time:** the effect of more
-  spending starting from the current settings, with everything else held fixed.
-- **S4. Now vs After raising G/Y, per dollar of new spending:** long-run and
-  impact multipliers (ΔX/ΔG) for the same experiment.
+- **S3. Multiplier Effect of Government Spending:** raises G/Y by item D.2 from
+  the current settings, everything else held fixed, and reports long-run and
+  impact multipliers (ΔX/ΔG) for S1's variables.
 
 An Appendix, opened in a separate window, tells the model agent by agent, with
 the equations in boxes.
@@ -76,7 +74,7 @@ and target hours (20% of time) are fixed.
 | File | Purpose |
 |---|---|
 | `fiscal_model.py` | The economics: steady-state and transition-path solvers. No UI code. |
-| `app.py` | The Streamlit front end: the sidebar controls and Sections S1–S4. |
+| `app.py` | The Streamlit front end: the sidebar controls and Sections S1–S3. |
 | `appendix.py` | The Appendix, shown on its own page via `?view=appendix`. |
 | `build_stlite.py` | Packages the app into `docs/` for GitHub Pages. |
 | `docs/` | The published site (generated; do not edit by hand). |

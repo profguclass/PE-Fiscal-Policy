@@ -512,7 +512,7 @@ def render():
     year by year, through investment. Consumption, hours, the wage, and the rental rate, on
     the other hand, can jump at once. The app finds the one path along which every rule in
     this story holds in every single year and the island converges to its new steady
-    state. That path is what the transition charts in Sections S2 and S3 show.
+    state. That path is what the transition charts in Section S2 show.
     """
     )
     with st.container(border=True):
