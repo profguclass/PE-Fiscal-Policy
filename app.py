@@ -395,13 +395,15 @@ s_G_old_pct = BENCH_s_G_pct  # the benchmark's G/Y, Section S1's reference level
 s_G_new_pct = d_box.slider(
     "D.1 Spending now, G/Y (%)", 5.0, 40.0, BENCH_s_G_pct, 1.0,
     help=f"The current level of government spending. The benchmark is G/Y = {BENCH_s_G_pct:.0f}%: "
-         "Sections S1-S3 compare the current settings against it; Section S3 raises "
-         "G/Y from this current level, and from the benchmark's, by item D.2.",
+         "Sections S1-S3 compare the current settings against it; Section S3 changes "
+         "G/Y by item D.2 from this current level, and from the benchmark's.",
     key=wkey("s_G_new_pct"))
+# Down to -4 points: G/Y is at least 5% in both economies, so it stays positive.
 dG_pct = d_box.number_input(
-    "D.2 Rise in G/Y (%p)", 0.0, 10.0, 0.0, 0.5,
-    help="Section S3 raises G/Y by this much, both from the benchmark's level and from "
-         "its current level (item D.1), holding every other setting fixed.",
+    "D.2 Change in G/Y (%p)", -4.0, 10.0, 1.0, 0.5,
+    help="Section S3 changes G/Y by this many percentage points, both from the benchmark's "
+         "level and from its current level (item D.1), holding every other setting fixed. "
+         "Positive is a rise in spending, negative a cut. Item D.3 sets how long it lasts.",
     key=wkey("dG_pct"))
 
 # 4.3 Duration of the change, alongside G/Y within the same section, since it
@@ -469,7 +471,7 @@ N_target_v = N_target_pct / 100.0
 f_IG_v, f_GC_v, f_GT_v = f_IG_pct / 100.0, f_GC_pct / 100.0, f_GT_pct / 100.0
 phi_v = phi
 lam_v = lam
-# Section S3's experiment: from the current G/Y (item D.1) up by dG (item D.2).
+# Section S3's experiment: from the current G/Y (item D.1), changed by item D.2.
 s_G_up_v = s_G_new_v + dG_pct / 100.0
 
 BENCH_f_IG, BENCH_f_GC, BENCH_f_GT = BENCH_f_IG_pct / 100.0, BENCH_f_GC_pct / 100.0, BENCH_f_GT_pct / 100.0
@@ -614,9 +616,9 @@ st.info(
     "benchmark**, a fixed reference economy (described under S1; change it with "
     "⚙ Benchmark), and **(B) the economy under the sidebar's current settings** (items "
     "A-F). S1 compares their long-run equilibria; S2 follows the economy year by year as "
-    "it moves from (A) to (B). **S3** raises only government spending, by item D.2, in "
-    "both (A) and (B), and compares how much each variable changes per dollar of new "
-    "spending (the multiplier)."
+    "it moves from (A) to (B). **S3** changes only government spending, by item D.2 "
+    "(a rise or a cut, for the time set in item D.3), in both (A) and (B), and compares "
+    "how much each variable changes per dollar of the change in spending (the multiplier)."
 )
 st.subheader("S1. Comparison between Old and New Equilibrium")
 st.write("Exact, closed-form solution of the model's long-run (“great ratios”) "
@@ -925,29 +927,35 @@ if not benchmark_error and cumulative_path is not None:
 
 # --------------------------------------------------------------------------
 # S3. Multiplier effect of government spending in (A) the benchmark and (B) the
-# current settings: in each, G/Y rises by item D.2 and every other setting stays.
+# current settings: in each, G/Y changes by item D.2 and every other setting stays.
 # (B) reuses ss_old/ss_new/path from the ΔG/Y experiment above.
 # --------------------------------------------------------------------------
 
 st.subheader("S3. Multiplier Effect of Government Spending")
-st.write(f"Simulates **raising G/Y by {dG_pct:.1f} percentage points (item D.2)** in both of "
-         f"S1's economies, holding everything else fixed: in **(A) the benchmark** G/Y goes from "
-         f"{BENCH_s_G_pct:.1f}% to {BENCH_s_G_pct + dG_pct:.1f}%, and in **(B) the current "
-         f"settings** from {s_G_new_pct:.1f}% to {s_G_new_pct + dG_pct:.1f}%. For each of "
-         r"S1's variables X, the table gives the **multiplier** $\Delta X/\Delta G$, the change "
-         "in X per dollar of new government spending, in each economy and the difference "
-         "(B−A): **long-run** (the new steady state vs the starting one) and **on impact** "
-         "(year 0, when the spending starts and capital has not moved yet). The difference "
-         "shows how the sidebar's settings change the effect of spending. Variables keep "
-         "S1's numbers and units, so rates, hours and other percentages change in "
+change_word = "raising" if dG_pct > 0 else "cutting"
+duration_text = "permanently" if permanent else f"for {duration_years} year(s) (item D.3)"
+st.write(f"Simulates **{change_word} G/Y by {abs(dG_pct):.1f} percentage points (item D.2), "
+         f"{duration_text}**, in both of S1's economies, holding everything else fixed: in "
+         f"**(A) the benchmark** G/Y goes from {BENCH_s_G_pct:.1f}% to "
+         f"{BENCH_s_G_pct + dG_pct:.1f}%, and in **(B) the current settings** from "
+         f"{s_G_new_pct:.1f}% to {s_G_new_pct + dG_pct:.1f}%. For each of S1's variables X, "
+         r"the table gives the **multiplier** $\Delta X/\Delta G$, the change in X per dollar "
+         "of the change in government spending, in each economy and the difference (B−A): "
+         "**long-run** (the new steady state vs the starting one) and **on impact** (year 0, "
+         "when the change starts and capital has not moved yet). The difference shows how the "
+         "sidebar's settings change the effect of spending. For a cut, ΔG is negative, so a "
+         "positive multiplier means X falls with the cut. A small change (about 1 point) "
+         "measures the effect of a marginal dollar at each economy's current size of "
+         "government; a larger one gives the average effect over the whole change. Variables "
+         "keep S1's numbers and units, so rates, hours and other percentages change in "
          "percentage points per unit of G.")
 if dG_pct == 0:
-    st.info("Item D.2 is 0, so there is no new spending to divide by and the "
-            "multipliers are blank. Set D.2 above 0 to compute them.")
+    st.info("Item D.2 is 0, so G/Y does not change and there is nothing to divide by: the "
+            "multipliers are blank. Set D.2 above or below 0 to compute them.")
 
 
 def spending_experiment(r, A, theta_G, s_G, f_IG, f_GC, f_GT, tax_mix, phi, lam):
-    """S3's ΔG/Y experiment in one economy: G/Y from s_G up by item D.2. Returns
+    """S3's ΔG/Y experiment in one economy: G/Y from s_G changed by item D.2. Returns
     (ss_old, ss_new, path); path is None when the saddle path cannot be solved."""
     kw = dict(r=r, A=A, theta_G=theta_G, f_IG=f_IG, f_GT=f_GT, f_GC=f_GC, phi=phi, lam=lam)
     try:
@@ -1034,13 +1042,13 @@ st.dataframe(
 )
 if not permanent:
     st.info(
-        "**The increase is temporary (item D.3).** The long-run columns compare two "
-        "steady states, so they show what a *permanent* increase would do. With a temporary "
-        f"increase G/Y falls back after {duration_years} year(s) and each economy ends back "
+        "**The change is temporary (item D.3).** The long-run columns compare two "
+        "steady states, so they show what a *permanent* change would do. With a temporary "
+        f"change G/Y returns after {duration_years} year(s) and each economy ends back "
         "where it started, so its actual long-run change is zero. Only the impact columns "
         "reflect D.3."
     )
-if dG_pct > 0:
+if dG_pct != 0:
     st.write(f"**Output multiplier ΔY/ΔG:** long-run {lr_A[0]:+.2f} in (A) and {lr_B[0]:+.2f} in "
              f"(B); on impact {imp_A[0]:+.2f} in (A) and {imp_B[0]:+.2f} in (B).")
 
@@ -1049,8 +1057,8 @@ if dG_pct > 0:
 # much larger numbers would flatten the other bars.
 is_pp = mult_table["Variable"].str.contains("%")
 for rows, title, height in (
-        (mult_table[~is_pp], "Multipliers ΔX/ΔG: change in each variable per dollar of new government spending", 560),
-        (mult_table[is_pp], "Rates and hours: percentage-point change per dollar of new government spending", 480)):
+        (mult_table[~is_pp], "Multipliers ΔX/ΔG: change in each variable per dollar of change in government spending", 560),
+        (mult_table[is_pp], "Rates and hours: percentage-point change per dollar of change in government spending", 480)):
     fig_mult = go.Figure()
     for name, col, color in (("(A) Long-run", "(A) Long-run ΔX/ΔG", "#93c5fd"),
                              ("(B) Long-run", "(B) Long-run ΔX/ΔG", "#2563eb"),
@@ -1073,7 +1081,9 @@ st.caption(
     "moving toward its new steady state (the accelerator), and in the long run investment "
     "only needs to sustain the new capital stock. Group totals of the two household types "
     "add up to the aggregate rows, e.g. (1−λ)·ΔCᴼ + λ·ΔCᴴ = ΔC. Inequality and welfare, "
-    "which have no natural per-dollar reading, are left out."
+    "which have no natural per-dollar reading, are left out. For a cut in spending, "
+    "read the same numbers the other way: a multiplier of +0.80 means each dollar cut "
+    "lowers X by 0.80."
 )
 
 # --------------------------------------------------------------------------
@@ -1140,11 +1150,12 @@ with st.expander("ℹ️ Methodology notes"):
   optimizers' consumption. Welfare uses the current φ for both scenarios and
   discounts with β = 1/(1+r); the accumulated value adds up years 0 to
   100 and counts the last one for every year after that.
-- **S3 (Multiplier Effect of Government Spending)** raises G/Y by the amount in
-  item D.2 in both of S1's economies, (A) the benchmark and (B) the current settings,
+- **S3 (Multiplier Effect of Government Spending)** changes G/Y by the amount in
+  item D.2 (a rise or a cut, permanent or temporary per item D.3) in both of S1's
+  economies, (A) the benchmark and (B) the current settings,
   while every other setting stays as it is. For each of S1's variables X except
   inequality and welfare, it reports the multiplier ΔX/ΔG -- the change in X per dollar
-  of new government spending -- in each economy and the difference (B−A), long-run
+  of the change in government spending -- in each economy and the difference (B−A), long-run
   (from the two steady states) and on impact (year 0 of the transition path, whose
   static equations are solved exactly).
         """

@@ -14,7 +14,7 @@ the long run and year by year along the transition.
 | A | Tax mix: the shares of revenue from the lump-sum, income and consumption taxes |
 | B | Public-capital productivity, θ_G |
 | C | How much households value in-kind welfare, φ |
-| D | Size of government, G/Y (D.1), a further rise in G/Y (D.2) and how long that rise lasts (D.3) |
+| D | Size of government, G/Y (D.1), a rise or cut in G/Y for S3 (D.2) and how long the change lasts (D.3) |
 | E | Composition of spending: public investment, in-kind welfare and cash welfare |
 | F | Share of hand-to-mouth households, λ |
 
@@ -37,8 +37,9 @@ multipliers.
   benchmark to the current settings, in levels, with dashed lines at each series'
   new level, including incomes, inequality and welfare year by year.
 
-- **S3. Multiplier Effect of Government Spending:** raises G/Y by item D.2 in
-  both the benchmark and the current settings, everything else held fixed, and
+- **S3. Multiplier Effect of Government Spending:** changes G/Y by item D.2 (a rise
+  or a cut, permanent or temporary) in both the benchmark and the current settings,
+  everything else held fixed, and
   compares long-run and impact multipliers (ΔX/ΔG) for S1's variables.
 
 An Appendix, opened in a separate window, tells the model agent by agent, with
