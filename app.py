@@ -395,13 +395,13 @@ s_G_old_pct = BENCH_s_G_pct  # the benchmark's G/Y, Section S1's reference level
 s_G_new_pct = d_box.slider(
     "D.1 Spending now, G/Y (%)", 5.0, 40.0, BENCH_s_G_pct, 1.0,
     help=f"The current level of government spending. The benchmark is G/Y = {BENCH_s_G_pct:.0f}%: "
-         "Sections S1 and S2 compare the current settings against it, and Section S3 raises "
-         "G/Y from this current level (item D.2).",
+         "Sections S1-S3 compare the current settings against it; Section S3 raises "
+         "G/Y from this current level, and from the benchmark's, by item D.2.",
     key=wkey("s_G_new_pct"))
 dG_pct = d_box.number_input(
     "D.2 Rise in G/Y (%p)", 0.0, 10.0, 0.0, 0.5,
-    help="Section S3 raises G/Y by this much from its current level (item D.1), "
-         "holding every other setting as it is now.",
+    help="Section S3 raises G/Y by this much, both from the benchmark's level and from "
+         "its current level (item D.1), holding every other setting fixed.",
     key=wkey("dG_pct"))
 
 # 4.3 Duration of the change, alongside G/Y within the same section, since it
@@ -614,9 +614,9 @@ st.info(
     "benchmark**, a fixed reference economy (described under S1; change it with "
     "⚙ Benchmark), and **(B) the economy under the sidebar's current settings** (items "
     "A-F). S1 compares their long-run equilibria; S2 follows the economy year by year as "
-    "it moves from (A) to (B). **S3** starts from (B) and raises only government spending, "
-    "by item D.2, to measure how much each variable changes per dollar of new spending "
-    "(the multiplier)."
+    "it moves from (A) to (B). **S3** raises only government spending, by item D.2, in "
+    "both (A) and (B), and compares how much each variable changes per dollar of new "
+    "spending (the multiplier)."
 )
 st.subheader("S1. Comparison between Old and New Equilibrium")
 st.write("Exact, closed-form solution of the model's long-run (“great ratios”) "
@@ -924,44 +924,55 @@ if not benchmark_error and cumulative_path is not None:
                    "benchmark and the current settings have hand-to-mouth households (λ>0 in item F).")
 
 # --------------------------------------------------------------------------
-# S3. Multiplier effect of government spending: G/Y rises by item D.2 from the
-# current settings (S1's column (B)); every other setting stays as it is. Uses
-# ss_old/ss_new/path from the ΔG/Y experiment above.
+# S3. Multiplier effect of government spending in (A) the benchmark and (B) the
+# current settings: in each, G/Y rises by item D.2 and every other setting stays.
+# (B) reuses ss_old/ss_new/path from the ΔG/Y experiment above.
 # --------------------------------------------------------------------------
 
 st.subheader("S3. Multiplier Effect of Government Spending")
-st.write(f"Simulates **raising G/Y by {dG_pct:.1f} percentage points (item D.2)** from the "
-         f"current settings: G/Y goes from {s_G_new_pct:.1f}% to {s_G_new_pct + dG_pct:.1f}%, "
-         "while the tax mix, composition, φ, θ_G and household types stay as the sidebar has "
-         "them. The starting point is column (B) of S1's table. For each of S1's variables X, "
-         r"the table gives the **multiplier** $\Delta X/\Delta G$, the change in X per dollar "
-         "of new government spending: **long-run** (the new steady state vs the starting one) "
-         "and **on impact** (year 0, when the spending starts and capital has not moved yet). "
-         "Variables keep S1's numbers and units, so rates, hours and other percentages change "
-         "in percentage points per unit of G.")
+st.write(f"Simulates **raising G/Y by {dG_pct:.1f} percentage points (item D.2)** in both of "
+         f"S1's economies, holding everything else fixed: in **(A) the benchmark** G/Y goes from "
+         f"{BENCH_s_G_pct:.1f}% to {BENCH_s_G_pct + dG_pct:.1f}%, and in **(B) the current "
+         f"settings** from {s_G_new_pct:.1f}% to {s_G_new_pct + dG_pct:.1f}%. For each of "
+         r"S1's variables X, the table gives the **multiplier** $\Delta X/\Delta G$, the change "
+         "in X per dollar of new government spending, in each economy and the difference "
+         "(B−A): **long-run** (the new steady state vs the starting one) and **on impact** "
+         "(year 0, when the spending starts and capital has not moved yet). The difference "
+         "shows how the sidebar's settings change the effect of spending. Variables keep "
+         "S1's numbers and units, so rates, hours and other percentages change in "
+         "percentage points per unit of G.")
 if dG_pct == 0:
     st.info("Item D.2 is 0, so there is no new spending to divide by and the "
             "multipliers are blank. Set D.2 above 0 to compute them.")
-if path is None:
-    st.info("Impact multipliers are unavailable at these settings (see the "
-            "saddle-path note above) -- only long-run multipliers are shown.")
-
-dG_total = ss_new.G - ss_old.G
-show_types_marg = lam_v > 0
 
 
-def year0_economy():
-    """The economy in year 0 of the ΔG/Y path, with S1's fields: capital and G from
+def spending_experiment(r, A, theta_G, s_G, f_IG, f_GC, f_GT, tax_mix, phi, lam):
+    """S3's ΔG/Y experiment in one economy: G/Y from s_G up by item D.2. Returns
+    (ss_old, ss_new, path); path is None when the saddle path cannot be solved."""
+    kw = dict(r=r, A=A, theta_G=theta_G, f_IG=f_IG, f_GT=f_GT, f_GC=f_GC, phi=phi, lam=lam)
+    try:
+        e = run_experiment(theta_N=theta_N_v, delta=delta_v, s_G_old=s_G, s_G_new=s_G + dG_pct / 100.0,
+                           N_target=N_target_v, financing=tax_mix, permanent=permanent,
+                           duration_years=duration_years, T_sim=200, theta_L=theta_L_bench, **kw)
+        return e.ss_old, e.ss_new, e.path
+    except RuntimeError:  # the saddle path only: the steady states are still fine
+        return tuple(steady_state_for_policy(theta_N_v, delta_v, r, A, theta_G, sg, f_IG, f_GT,
+                                             theta_L_bench, tax_mix, f_GC=f_GC, phi=phi, lam=lam)
+                     for sg in (s_G, s_G + dG_pct / 100.0)) + (None,)
+
+
+def year0_economy(ss0, ss1, pth):
+    """The economy in year 0 of a ΔG/Y path, with S1's fields: capital and G from
     the path's state, everything else from that year's static equations, solved exactly."""
-    base = ss_new if permanent else ss_old  # the steady state the path is built around
-    out = household_outcomes(base, path.state[:, :1])
-    k, _, g, kg = path.state[:, 0]
+    base = ss1 if permanent else ss0  # the steady state the path is built around
+    out = household_outcomes(base, pth.state[:, :1])
+    k, _, g, kg = pth.state[:, 0]
     lam = base.lam
     CO, CH = out["CO"][0], out["CH"][0]
     eco = SimpleNamespace(
         Y=out["Y"][0], C=(1 - lam) * CO + (lam * CH if lam > 0 else 0.0),
-        I=ss_old.I * np.exp(path.I[0] / 100.0),  # path.I is a % deviation from ss_old
-        K=base.K * np.exp(k), KG=base.KG * np.exp(kg), r=ss_old.r + path.r_bp[0] / 1e4,
+        I=ss0.I * np.exp(pth.I[0] / 100.0),  # pth.I is a % deviation from ss0
+        K=base.K * np.exp(k), KG=base.KG * np.exp(kg), r=ss0.r + pth.r_bp[0] / 1e4,
         theta_K=base.theta_K, N=out["N"][0], w=out["w"][0],
         G=base.G * np.exp(g), IG=base.IG * np.exp(g), GC=out["GC"][0], GT=base.GT * np.exp(g),
         tau_y=out["tau_y"][0], tau_c=out["tau_c"][0], T=out["T"][0], lam=lam,
@@ -969,60 +980,71 @@ def year0_economy():
     return eco, out
 
 
-def per_dollar(x_old, x):
-    return (x - x_old) / dG_total if abs(dG_total) > 1e-12 else float("nan")
+def multipliers(ss0, ss1, pth, show):
+    """S1-style rows and their long-run and impact ΔX/ΔG for one economy."""
+    dG = ss1.G - ss0.G
+    rows0 = equilibrium_rows(ss0, show, inequality=False)
+    rows1 = equilibrium_rows(ss1, show, inequality=False)
+    if pth is not None:
+        eco0, out0 = year0_economy(ss0, ss1, pth)
+        rows_imp = equilibrium_rows(eco0, show, out0, inequality=False)
+    else:
+        rows_imp = [(c, v, float("nan")) for c, v, _ in rows0]
+
+    def per_dollar(x0, x):
+        return (x - x0) / dG if abs(dG) > 1e-12 else float("nan")
+
+    return (rows0, [per_dollar(x0, x1) for (_, _, x0), (_, _, x1) in zip(rows0, rows1)],
+            [per_dollar(x0, x1) for (_, _, x0), (_, _, x1) in zip(rows0, rows_imp)])
 
 
-marg_old = equilibrium_rows(ss_old, show_types_marg, inequality=False)
-marg_new = equilibrium_rows(ss_new, show_types_marg, inequality=False)
-if path is not None:
-    eco0, out0 = year0_economy()
-    marg_impact = [x for _, _, x in equilibrium_rows(eco0, show_types_marg, out0, inequality=False)]
+# Household-type rows need hand-to-mouth households in both economies, as in S1.
+show_types_s3 = BENCH_lam > 0 and lam_v > 0
+try:
+    exp_A = spending_experiment(BENCH_r_pct / 100.0, A_bench, BENCH_theta_G, BENCH_s_G, BENCH_f_IG,
+                                BENCH_f_GC, BENCH_f_GT, BENCH_tax_mix, BENCH_phi, BENCH_lam)
+except Exception as exc:  # noqa: BLE001 -- the benchmark's own steady state is infeasible
+    exp_A = None
+    st.error(f"Could not compute the benchmark's multipliers: {exc}")
+rows_s3, lr_B, imp_B = multipliers(ss_old, ss_new, path, show_types_s3)
+if exp_A is not None:
+    _, lr_A, imp_A = multipliers(*exp_A, show_types_s3)
 else:
-    marg_impact = [float("nan")] * len(marg_old)
-mult_table = pd.DataFrame({
-    "Category": [cat for cat, _, _ in marg_old],
-    "Variable": numbered(marg_old),
-    "Long-run ΔX/ΔG": [per_dollar(x0, x1) for (_, _, x0), (_, _, x1) in zip(marg_old, marg_new)],
-    "Impact (year-0) ΔX/ΔG": [per_dollar(x0, x1) for (_, _, x0), x1 in zip(marg_old, marg_impact)],
-})
+    lr_A = imp_A = [float("nan")] * len(rows_s3)
+missing = [name for name, pth in (("(A)", exp_A[2] if exp_A else None), ("(B)", path)) if pth is None]
+if missing:
+    st.info(f"Impact multipliers are unavailable for {' and '.join(missing)} at these settings "
+            "(the transition-path solver lost saddle-path stability) -- only long-run "
+            "multipliers are shown there.")
+
+mult_cols = {
+    "(A) Long-run ΔX/ΔG": lr_A, "(B) Long-run ΔX/ΔG": lr_B,
+    "(B−A) Long-run": [b - a for a, b in zip(lr_A, lr_B)],
+    "(A) Impact ΔX/ΔG": imp_A, "(B) Impact ΔX/ΔG": imp_B,
+    "(B−A) Impact": [b - a for a, b in zip(imp_A, imp_B)],
+}
+mult_table = pd.DataFrame({"Category": [cat for cat, _, _ in rows_s3], "Variable": numbered(rows_s3),
+                           **mult_cols})
 
 st.dataframe(
     mult_table,
     hide_index=True,
     use_container_width=True,
-    column_config={
-        "Long-run ΔX/ΔG": st.column_config.NumberColumn(format="%+.4f"),
-        "Impact (year-0) ΔX/ΔG": st.column_config.NumberColumn(format="%+.4f"),
-    },
+    column_config={col: st.column_config.NumberColumn(format="%+.4f") for col in mult_cols},
 )
 if not permanent:
     st.info(
-        "**The increase is temporary (item D.3).** The long-run column compares the two "
-        f"steady states, so it shows what a *permanent* increase would do. With a temporary "
-        f"increase G/Y returns to {s_G_new_pct:.1f}% after {duration_years} year(s) and the "
-        "economy ends back where it started, so its actual long-run change is zero. Only the "
-        "impact column reflects D.3."
+        "**The increase is temporary (item D.3).** The long-run columns compare two "
+        "steady states, so they show what a *permanent* increase would do. With a temporary "
+        f"increase G/Y falls back after {duration_years} year(s) and each economy ends back "
+        "where it started, so its actual long-run change is zero. Only the impact columns "
+        "reflect D.3."
     )
+if dG_pct > 0:
+    st.write(f"**Output multiplier ΔY/ΔG:** long-run {lr_A[0]:+.2f} in (A) and {lr_B[0]:+.2f} in "
+             f"(B); on impact {imp_A[0]:+.2f} in (A) and {imp_B[0]:+.2f} in (B).")
 
-multiplier_long_run = per_dollar(ss_old.Y, ss_new.Y)
-if multiplier_long_run > 1:
-    st.success(
-        f"**A one-dollar permanent increase in government spending raises long-run "
-        f"output by ≈ ${multiplier_long_run:.2f}.** This exceed-1 multiplier comes from "
-        f"labor supply rising (negative wealth effect), and — if θ_G>0 — public investment "
-        f"directly raising the productivity of private capital and labor."
-    )
-elif multiplier_long_run < 0:
-    st.warning(
-        f"**Output *falls* by ≈ ${-multiplier_long_run:.2f} for every dollar "
-        f"of new spending.** The higher income-tax rate (on labor and capital income) "
-        f"and consumption-tax rate (which lowers what an hour of work buys) depress work "
-        f"effort and capital formation by more than the direct resource cost of the "
-        f"spending itself."
-    )
-
-# One pair of bars for every row of the table above, in the same order. Rows in %
+# One group of bars for every row of the table above, in the same order. Rows in %
 # (percentage points per unit of G) get their own chart, since on one axis their
 # much larger numbers would flatten the other bars.
 is_pp = mult_table["Variable"].str.contains("%")
@@ -1030,11 +1052,11 @@ for rows, title, height in (
         (mult_table[~is_pp], "Multipliers ΔX/ΔG: change in each variable per dollar of new government spending", 560),
         (mult_table[is_pp], "Rates and hours: percentage-point change per dollar of new government spending", 480)):
     fig_mult = go.Figure()
-    for name, col, color in (("Long-run", "Long-run ΔX/ΔG", "#2563eb"),
-                             ("Impact (year-0)", "Impact (year-0) ΔX/ΔG", "#f59e0b")):
-        fig_mult.add_trace(go.Bar(name=name, x=rows["Variable"].str.strip(), y=rows[col], marker_color=color,
-                                   text=["" if pd.isna(v) else f"{v:.2f}" for v in rows[col]],
-                                   textposition="outside"))
+    for name, col, color in (("(A) Long-run", "(A) Long-run ΔX/ΔG", "#93c5fd"),
+                             ("(B) Long-run", "(B) Long-run ΔX/ΔG", "#2563eb"),
+                             ("(A) Impact", "(A) Impact ΔX/ΔG", "#fcd34d"),
+                             ("(B) Impact", "(B) Impact ΔX/ΔG", "#d97706")):
+        fig_mult.add_trace(go.Bar(name=name, x=rows["Variable"].str.strip(), y=rows[col], marker_color=color))
     fig_mult.add_hline(y=0, line_dash="dot", line_color="gray")
     fig_mult.update_layout(barmode="group", title=title,
                             yaxis_title="ΔX / ΔG", height=height, margin=dict(t=50, b=20))
@@ -1044,7 +1066,9 @@ st.caption(
     "A multiplier above +1.00 for Output means a marginal dollar of government "
     "spending raises long-run output by more than a dollar. This can happen under "
     "lump-sum financing (labor supply rises from the negative wealth effect, and, if "
-    "θ_G>0, public investment directly raises productivity). Capital is fixed on impact, "
+    "θ_G>0, public investment directly raises productivity). Below 0, the higher income- "
+    "and consumption-tax rates that pay for the spending depress work effort and capital "
+    "formation by more than the spending's direct resource cost. Capital is fixed on impact, "
     "so its impact multiplier is zero, while investment's can be large: capital starts "
     "moving toward its new steady state (the accelerator), and in the long run investment "
     "only needs to sustain the new capital stock. Group totals of the two household types "
@@ -1116,14 +1140,13 @@ with st.expander("ℹ️ Methodology notes"):
   optimizers' consumption. Welfare uses the current φ for both scenarios and
   discounts with β = 1/(1+r); the accumulated value adds up years 0 to
   100 and counts the last one for every year after that.
-- **S3 (Multiplier Effect of Government Spending)** isolates the effect of more
-  government spending in the *current* situation: starting from the current settings
-  (S1's column (B), including the current G/Y, item D.1), G/Y rises by the amount in
-  item D.2 while every other setting (tax mix, composition, φ, θ_G, household types)
-  stays as it is. For each of S1's variables X except inequality and welfare, it
-  reports the multiplier ΔX/ΔG -- the change in X per dollar of new government
-  spending -- long-run (from the two steady states) and on impact (year 0 of the
-  transition path, whose static equations are solved exactly).
+- **S3 (Multiplier Effect of Government Spending)** raises G/Y by the amount in
+  item D.2 in both of S1's economies, (A) the benchmark and (B) the current settings,
+  while every other setting stays as it is. For each of S1's variables X except
+  inequality and welfare, it reports the multiplier ΔX/ΔG -- the change in X per dollar
+  of new government spending -- in each economy and the difference (B−A), long-run
+  (from the two steady states) and on impact (year 0 of the transition path, whose
+  static equations are solved exactly).
         """
     )
 

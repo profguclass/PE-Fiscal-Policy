@@ -26,7 +26,8 @@ this benchmark with their own.
 ## What the app shows
 
 S1 and S2 compare (A) the benchmark with (B) the economy under the sidebar's
-current settings; S3 starts from (B) and raises only government spending.
+current settings; S3 raises only government spending in both and compares the
+multipliers.
 
 - **S1. Comparison between Old and New Equilibrium:** steady-state levels and
   % changes, benchmark vs the current settings, including incomes by household
@@ -36,9 +37,9 @@ current settings; S3 starts from (B) and raises only government spending.
   benchmark to the current settings, in levels, with dashed lines at each series'
   new level, including incomes, inequality and welfare year by year.
 
-- **S3. Multiplier Effect of Government Spending:** raises G/Y by item D.2 from
-  the current settings, everything else held fixed, and reports long-run and
-  impact multipliers (ΔX/ΔG) for S1's variables.
+- **S3. Multiplier Effect of Government Spending:** raises G/Y by item D.2 in
+  both the benchmark and the current settings, everything else held fixed, and
+  compares long-run and impact multipliers (ΔX/ΔG) for S1's variables.
 
 An Appendix, opened in a separate window, tells the model agent by agent, with
 the equations in boxes.
