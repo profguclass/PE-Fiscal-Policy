@@ -336,15 +336,33 @@ def render():
     )
     with st.container(border=True):
         st.markdown("**In symbols**")
-        st.markdown(r"Labor-leisure (when $N^H_t>0$):")
+        st.markdown(
+            r"**Step 1. Lagrangian.** Nothing links one year to the next, so the problem is "
+            r"solved one year at a time. Attach a multiplier $\mu_t$ to this year's budget; "
+            r"$\mu_t$ is the happiness that one more unit of goods brings this year."
+        )
+        st.latex(
+            r"\mathcal{L} = \ln\big(C^H_t+\phi\,G^C_t\big) + \theta_L \ln\big(1-N^H_t\big) "
+            r"+ \mu_t\Big[w_t N^H_t + \frac{G^T_t}{\lambda} - T_t - (1+\tau^C_t)\,C^H_t\Big]"
+        )
+        st.markdown(r"**Step 2. First-order conditions.** Set the derivative with respect to each choice to zero.")
+        st.latex(r"\partial C^H_t:\quad \frac{1}{C^H_t+\phi\,G^C_t} = \mu_t\,(1+\tau^C_t)")
+        st.latex(r"\partial N^H_t:\quad \frac{\theta_L}{1-N^H_t} = \mu_t\,w_t")
+        st.markdown(
+            r"Compare the optimizers' $\partial N^O_t$ condition: $w_t$ here is not multiplied "
+            r"by $(1-\tau^Y_t)$, because the hand-to-mouth households' wages are not taxed."
+        )
+        st.markdown(
+            r"**Step 3. Labor-leisure (when $N^H_t>0$).** Divide the $\partial N^H_t$ condition "
+            r"by the $\partial C^H_t$ condition; $\mu_t$ cancels."
+        )
         st.latex(r"\underbrace{\theta_L\,\frac{C^H_t+\phi\,G^C_t}{1-N^H_t}}_{\text{value of an hour of leisure, in goods}} = \underbrace{\frac{w_t}{1+\tau^C_t}}_{\text{goods an hour of work buys}}")
         st.markdown(
-            r"This is the optimizers' rule with $(1-\tau^Y_t)$ removed, because the "
-            r"hand-to-mouth households' wages are not taxed. If even the first hour of work "
-            r"is worth less than leisure, $\theta_L\,(C^H_t+\phi\,G^C_t) \ge w_t/(1+\tau^C_t)$ "
+            r"This is the optimizers' rule with $(1-\tau^Y_t)$ removed. If even the first hour "
+            r"of work is worth less than leisure, $\theta_L\,(C^H_t+\phi\,G^C_t) \ge w_t/(1+\tau^C_t)$ "
             r"at $N^H_t=0$, they do not work: $N^H_t=0$."
         )
-        st.markdown(r"No Euler equation:")
+        st.markdown(r"**Step 4. No Euler equation.**")
         st.markdown(
             r"The Euler equation links today's consumption to tomorrow's through saving. "
             r"Hand-to-mouth households cannot save or borrow, so they have no such link "
@@ -354,7 +372,7 @@ def render():
         )
         st.latex(r"(1+\tau^C_t)\,C^H_t = w_t N^H_t + \frac{G^T_t}{\lambda} - T_t")
         st.markdown(
-            r"Solving the two together: substitute $C^H_t$ from the budget into the "
+            r"**Step 5. Hours and consumption.** Substitute $C^H_t$ from the budget into the "
             r"labor-leisure rule, multiply both sides by $(1+\tau^C_t)(1-N^H_t)$, and solve "
             r"for $N^H_t$:"
         )
