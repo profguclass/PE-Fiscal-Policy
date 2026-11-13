@@ -11,15 +11,15 @@ the long run and year by year along the transition.
 
 | Sidebar item | Setting |
 |---|---|
-| A | Tax mix: the shares of revenue from the lump-sum, income and consumption taxes |
+| A | Tax mix: the shares of revenue from the capital, labor and consumption taxes |
 | B | Public-capital productivity, θ_G |
 | C | How much households value in-kind welfare, φ |
 | D | Size of government, G/Y (D.1); a rise or cut in G/Y for S3 (D.2); whether changes in G/Y are permanent or temporary, and for how many years (D.3) |
 | E | Composition of spending: public investment, in-kind welfare and cash welfare |
 | F | Share of hand-to-mouth households, λ |
 
-The benchmark economy raises revenue 50% lump-sum, 20% income tax and 30%
-consumption tax, with G/Y = 20% split 20/50/30 across public investment, in-kind
+The benchmark economy raises revenue 30% from the capital tax, 40% from the labor
+tax and 30% from the consumption tax, with G/Y = 20% split 20/50/30 across public investment, in-kind
 welfare and cash welfare, θ_G = 0.10, φ = 0.10 and λ = 0.30. Users can replace
 this benchmark with their own (**⚙ Benchmark**).
 
@@ -54,7 +54,7 @@ both, and compares the multipliers.
   accumulated up to that year.
 - **S3. Multiplier Effect of Government Spending:** changes G/Y by item D.2
   (a rise or a cut, permanent or temporary per D.3) in both (A) and (B),
-  holding everything else fixed. For S1's variables 1–36, it reports the
+  holding everything else fixed. For S1's variables 1–37, it reports the
   multipliers ΔX/ΔG, the change in X per dollar of the change in spending,
   long-run and on impact (year 0): (C) and (E) in the benchmark, (D) and (F)
   in the current settings, and the differences (D-C) and (F-E).
@@ -65,16 +65,18 @@ the equations in boxes.
 
 ## The model, briefly
 
-- **Households.** A share λ are hand-to-mouth: they own no capital, do not save,
-  pay no income tax and receive all of the cash welfare. The rest are optimizers:
-  they own the capital and pay the income tax. Everyone pays the lump-sum and
-  consumption taxes. Utility is `ln(C + φ·Gᶜ) + θ_L·ln(1 − N)`.
+- **Households.** A share λ are hand-to-mouth: they own no capital, do not save
+  and receive all of the cash welfare. The rest are optimizers: they own the capital
+  and pay the capital tax. Everyone pays the labor and consumption taxes, but
+  hand-to-mouth households pay half the optimizers' labor-tax rate (τⁿ/2), a simple
+  progressive scheme. Utility is `ln(C + φ·Gᶜ) + θ_L·ln(1 − N)`.
 - **Production.** Cobb-Douglas in private capital, labor and public capital, which
   raises productivity when θ_G > 0.
 - **Government.** The three taxes together raise revenue equal to total spending
   every year, each a fixed share of it, so their rates adjust year by year. The
-  lump-sum tax distorts nothing. The income tax distorts both work and saving. The
-  consumption tax distorts work only, as long as its rate stays constant over time.
+  capital tax falls on rental income from capital and distorts saving. The labor tax
+  falls on wages and distorts work. The consumption tax distorts work only, as long as
+  its rate stays constant over time.
 - **Spending.** Public investment accumulates into public capital. In-kind welfare
   uses up output and is valued by households through φ. Cash welfare only moves
   income to households.

@@ -72,10 +72,11 @@ def render():
     A second number between zero and one, the hand-to-mouth share, tells what fraction of
     the population is hand-to-mouth. The rest, one minus that share, are optimizers.
 
-    The government has three taxes. The lump-sum tax is a fixed amount that every person
-    pays no matter what they do. The income-tax rate is the fraction of income the
-    government takes. The consumption-tax rate is the fraction added on top of the price of
-    everything a household buys.
+    The government has three taxes. The capital-tax rate is the fraction of rental income
+    from machines that the government takes. The labor-tax rate is the fraction of wages it
+    takes from optimizers; hand-to-mouth households pay half that rate, a simple
+    progressive scheme. The consumption-tax rate is the fraction added on top of the price
+    of everything a household buys.
 
     Optimizers care less about the future than the present. The discount factor tells how
     much they value a unit of happiness one year from now compared with the same unit
@@ -107,7 +108,7 @@ def render():
     | $K^G_t$ | Public capital (built by public investment $I^G_t$) |
     | $\phi$ | How much households value in-kind welfare, relative to their own consumption ($0\le\phi\le1$) |
     | $\lambda$ | Share of households that are hand-to-mouth |
-    | $T_t,\ \tau^Y_t,\ \tau^C_t$ | Lump-sum tax per person, income-tax rate, consumption-tax rate |
+    | $\tau^K_t,\ \tau^N_t,\ \tau^C_t$ | Capital-tax rate (on rental income), labor-tax rate (optimizers; hand-to-mouth pay $\tau^N_t/2$), consumption-tax rate |
     | $\beta=1/(1+r),\ \delta$ | Discount factor ($r$ = steady-state real interest rate), depreciation rate |
     | $\theta_N,\ \theta_K=1-\theta_N,\ \theta_G$ | Output elasticities of labor, private capital, public capital |
     | $\theta_L$ | Weight on leisure in utility |
@@ -199,8 +200,8 @@ def render():
     where every unit costs one plus the consumption-tax rate, and investment in new
     machines. What they have to spend is their labor income, the wage times their hours,
     plus their capital income, the rental rate times their machines; the government takes
-    the income-tax rate's fraction of this total, and then takes the lump-sum tax on top.
-    Spending must equal what is left. They receive no cash welfare, unless the
+    the labor-tax rate's fraction of their labor income and the capital-tax rate's fraction
+    of their capital income. Spending must equal what is left. They receive no cash welfare, unless the
     hand-to-mouth share is zero: in that case the optimizers are the whole population, cash
     welfare is paid to them and added to what they have to spend, and the island becomes
     a single representative household.
@@ -214,7 +215,7 @@ def render():
         st.markdown("**In symbols**")
         st.latex(r"\max\ \sum_{t=0}^{\infty} \beta^t \Big[\ln\big(C^O_t + \phi\,G^C_t\big) + \theta_L \ln\big(1-N^O_t\big)\Big]")
         st.markdown(r"subject to")
-        st.latex(r"(1+\tau^C_t)\,C^O_t + I^O_t = (1-\tau^Y_t)\big(w_t N^O_t + R_t K^O_t\big) - T_t")
+        st.latex(r"(1+\tau^C_t)\,C^O_t + I^O_t = (1-\tau^N_t)\,w_t N^O_t + (1-\tau^K_t)\,R_t K^O_t")
         st.latex(r"K^O_{t+1} = (1-\delta)\,K^O_t + I^O_t")
         st.markdown(r"When $\lambda=0$, the term $+\,G^T_t$ is added to the right-hand side of the budget.")
     st.markdown(
@@ -224,7 +225,7 @@ def render():
     The first rule balances work against leisure. Take the leisure weight, multiply it by
     effective consumption, and divide by leisure. That is what one more hour of leisure is
     worth, measured in goods. It must equal what one more hour of work brings in goods: the
-    wage, reduced by the income-tax fraction, and then divided by one plus the
+    wage, reduced by the labor-tax fraction, and then divided by one plus the
     consumption-tax rate, since every good bought carries that tax. If an hour of leisure
     were worth more than this, they would work less; if it were worth less, they would work
     more.
@@ -234,7 +235,7 @@ def render():
     rate units of consumption, and each of those units is worth one divided by today's
     effective consumption in happiness. That unit of goods, invested instead, becomes a
     machine that next year earns the rental rate, of which the government keeps next
-    year's income-tax fraction; the machine itself is still there, except for the
+    year's capital-tax fraction; the machine itself is still there, except for the
     depreciation-rate fraction that wore out. So the unit returns one, plus the after-tax
     rental rate, minus the depreciation rate. Those goods buy consumption at next year's
     price, one plus next year's consumption-tax rate, and each unit of consumption is worth
@@ -242,14 +243,13 @@ def render():
     is shrunk by the discount factor. At the best plan, the happiness lost today equals the
     discounted happiness gained tomorrow exactly.
 
-    These two rules show how each tax bends behavior. The income tax appears in both rules:
-    it shrinks the reward for an hour of work and the reward for saving, and so it
-    discourages both. The consumption tax lowers how many goods an hour of work can buy, so
-    it discourages work much as a wage tax would. But when its rate is the same today and
-    tomorrow, it raises the price of consumption equally in both years and cancels out of
-    the Euler equation, so it does not discourage saving. The lump-sum tax appears in
-    neither rule. It only makes the optimizers poorer, so they consume less and work more,
-    but it does not distort the trade-offs they make at the margin.
+    These two rules show how each tax bends behavior. The labor tax appears only in the
+    first rule: it shrinks the reward for an hour of work, and so it discourages work. The
+    capital tax appears only in the Euler equation: it shrinks the reward for saving, and
+    so it discourages building machines. The consumption tax lowers how many goods an hour
+    of work can buy, so it discourages work much as the labor tax does. But when its rate
+    is the same today and tomorrow, it raises the price of consumption equally in both
+    years and cancels out of the Euler equation, so it does not discourage saving.
     """
     )
     with st.container(border=True):
@@ -262,29 +262,29 @@ def render():
         st.latex(
             r"\begin{aligned}\mathcal{L} = \sum_{t=0}^{\infty} \beta^t \Big\{ "
             r"&\ln\big(C^O_t+\phi\,G^C_t\big) + \theta_L \ln\big(1-N^O_t\big) \\ "
-            r"&+ \mu_t\Big[(1-\tau^Y_t)\big(w_t N^O_t + R_t K^O_t\big) - T_t "
+            r"&+ \mu_t\Big[(1-\tau^N_t)\,w_t N^O_t + (1-\tau^K_t)\,R_t K^O_t "
             r"- (1+\tau^C_t)\,C^O_t - K^O_{t+1} + (1-\delta)K^O_t\Big] \Big\}\end{aligned}"
         )
         st.markdown(r"**Step 2. First-order conditions.** Set the derivative with respect to each choice to zero.")
         st.latex(r"\partial C^O_t:\quad \frac{1}{C^O_t+\phi\,G^C_t} = \mu_t\,(1+\tau^C_t)")
-        st.latex(r"\partial N^O_t:\quad \frac{\theta_L}{1-N^O_t} = \mu_t\,(1-\tau^Y_t)\,w_t")
-        st.latex(r"\partial K^O_{t+1}:\quad \mu_t = \beta\,\mu_{t+1}\big[1+(1-\tau^Y_{t+1})\,R_{t+1}-\delta\big]")
+        st.latex(r"\partial N^O_t:\quad \frac{\theta_L}{1-N^O_t} = \mu_t\,(1-\tau^N_t)\,w_t")
+        st.latex(r"\partial K^O_{t+1}:\quad \mu_t = \beta\,\mu_{t+1}\big[1+(1-\tau^K_{t+1})\,R_{t+1}-\delta\big]")
         st.markdown(
             r"$K^O_{t+1}$ appears twice: in year $t$'s budget, where buying it costs $\mu_t$, and "
-            r"in year $t+1$'s budget, where it pays $(1-\tau^Y_{t+1})R_{t+1}+(1-\delta)$, "
+            r"in year $t+1$'s budget, where it pays $(1-\tau^K_{t+1})R_{t+1}+(1-\delta)$, "
             r"discounted by $\beta$."
         )
         st.markdown(r"**Step 3. Labor-leisure.** Divide the $\partial N^O_t$ condition by the $\partial C^O_t$ condition; $\mu_t$ cancels.")
-        st.latex(r"\underbrace{\theta_L\,\frac{C^O_t+\phi\,G^C_t}{1-N^O_t}}_{\text{value of an hour of leisure, in goods}} = \underbrace{\frac{(1-\tau^Y_t)\,w_t}{1+\tau^C_t}}_{\text{goods an hour of work buys, after taxes}}")
+        st.latex(r"\underbrace{\theta_L\,\frac{C^O_t+\phi\,G^C_t}{1-N^O_t}}_{\text{value of an hour of leisure, in goods}} = \underbrace{\frac{(1-\tau^N_t)\,w_t}{1+\tau^C_t}}_{\text{goods an hour of work buys, after taxes}}")
         st.markdown(
             r"**Step 4. Euler equation.** The $\partial C^O_t$ condition gives "
             r"$\mu_t = 1/\big[(1+\tau^C_t)(C^O_t+\phi\,G^C_t)\big]$, and the same for $t+1$. "
             r"Substitute both into the $\partial K^O_{t+1}$ condition."
         )
-        st.latex(r"\underbrace{\frac{1}{(1+\tau^C_t)(C^O_t+\phi\,G^C_t)}}_{\text{happiness lost by giving up a unit of goods today}} = \underbrace{\beta\,\frac{1+(1-\tau^Y_{t+1})\,R_{t+1}-\delta}{(1+\tau^C_{t+1})(C^O_{t+1}+\phi\,G^C_{t+1})}}_{\text{discounted happiness gained by investing it}}")
+        st.latex(r"\underbrace{\frac{1}{(1+\tau^C_t)(C^O_t+\phi\,G^C_t)}}_{\text{happiness lost by giving up a unit of goods today}} = \underbrace{\beta\,\frac{1+(1-\tau^K_{t+1})\,R_{t+1}-\delta}{(1+\tau^C_{t+1})(C^O_{t+1}+\phi\,G^C_{t+1})}}_{\text{discounted happiness gained by investing it}}")
         st.markdown(
-            r"$\tau^Y$ enters both conditions; $\tau^C$ enters the first and cancels from the "
-            r"second when $\tau^C_t=\tau^C_{t+1}$; $T_t$ enters neither."
+            r"$\tau^N$ enters only the first condition and $\tau^K$ only the second; $\tau^C$ "
+            r"enters the first and cancels from the second when $\tau^C_t=\tau^C_{t+1}$."
         )
 
     st.subheader("A.4 Hand-to-mouth households (share λ)")
@@ -299,10 +299,11 @@ def render():
     possible.
 
     Their budget is simple. What they spend on consumption, at one plus the consumption-tax
-    rate per unit, equals their wage times their hours, plus their share of the cash
-    welfare, minus the lump-sum tax. All of the island's cash welfare goes to them, so each
-    hand-to-mouth household receives total cash welfare divided by the hand-to-mouth share.
-    They pay no income tax, but every good they buy carries the consumption tax. Nothing
+    rate per unit, equals their wage times their hours, less the labor tax at half the
+    optimizers' rate, plus their share of the cash welfare. All of the island's cash
+    welfare goes to them, so each hand-to-mouth household receives total cash welfare
+    divided by the hand-to-mouth share. They own no machines, so they pay no capital tax,
+    but every good they buy carries the consumption tax. Nothing
     they do this year changes what they can do next year, so they solve their problem one
     year at a time.
     """
@@ -311,27 +312,27 @@ def render():
         st.markdown("**In symbols**")
         st.latex(r"\max_{C^H_t,\,N^H_t}\ \ln\big(C^H_t + \phi\,G^C_t\big) + \theta_L \ln\big(1-N^H_t\big)")
         st.markdown(r"subject to")
-        st.latex(r"(1+\tau^C_t)\,C^H_t = w_t N^H_t + \frac{G^T_t}{\lambda} - T_t")
+        st.latex(r"(1+\tau^C_t)\,C^H_t = \big(1-\tfrac{1}{2}\tau^N_t\big)\,w_t N^H_t + \frac{G^T_t}{\lambda}")
     st.markdown(
         """
     **What the hand-to-mouth households do.** They follow the same work-versus-leisure rule
-    as the optimizers, with one change: the income tax is missing. The leisure weight times
-    their effective consumption, divided by their leisure, must equal the wage divided by
-    one plus the consumption-tax rate.
+    as the optimizers, with one change: the labor tax takes only half the optimizers'
+    rate. The leisure weight times their effective consumption, divided by their leisure,
+    must equal their after-tax wage divided by one plus the consumption-tax rate.
 
     Putting this rule together with their budget tells us their hours directly. First add
-    up their resources other than work: the cash welfare each one receives, minus the
-    lump-sum tax, plus the in-kind welfare counted at its in-kind value and priced as if it
-    were bought at the after-tax price, that is, multiplied by one plus the consumption-tax
-    rate. Multiply these other resources by the leisure weight and subtract the result from
-    the wage. Then divide by the wage times one plus the leisure weight. What comes out is
+    up their resources other than work: the cash welfare each one receives, plus the
+    in-kind welfare counted at its in-kind value and priced as if it were bought at the
+    after-tax price, that is, multiplied by one plus the consumption-tax rate. Multiply
+    these other resources by the leisure weight and subtract the result from the after-tax
+    wage. Then divide by the after-tax wage times one plus the leisure weight. What comes
+    out is
     the fraction of their time they work. If it comes out below zero, they do not work at
     all, and their hours are zero.
 
     The rule says that the richer they are without working, the less they work. More cash
-    welfare or more in-kind welfare means fewer hours; a larger lump-sum tax makes them
-    poorer and means more hours. Once their hours are known, their consumption follows from
-    their budget.
+    welfare or more in-kind welfare means fewer hours; a higher after-tax wage means more.
+    Once their hours are known, their consumption follows from their budget.
     """
     )
     with st.container(border=True):
@@ -343,23 +344,25 @@ def render():
         )
         st.latex(
             r"\mathcal{L} = \ln\big(C^H_t+\phi\,G^C_t\big) + \theta_L \ln\big(1-N^H_t\big) "
-            r"+ \mu_t\Big[w_t N^H_t + \frac{G^T_t}{\lambda} - T_t - (1+\tau^C_t)\,C^H_t\Big]"
+            r"+ \mu_t\Big[\big(1-\tfrac{1}{2}\tau^N_t\big)\,w_t N^H_t + \frac{G^T_t}{\lambda} - (1+\tau^C_t)\,C^H_t\Big]"
         )
         st.markdown(r"**Step 2. First-order conditions.** Set the derivative with respect to each choice to zero.")
         st.latex(r"\partial C^H_t:\quad \frac{1}{C^H_t+\phi\,G^C_t} = \mu_t\,(1+\tau^C_t)")
-        st.latex(r"\partial N^H_t:\quad \frac{\theta_L}{1-N^H_t} = \mu_t\,w_t")
+        st.latex(r"\partial N^H_t:\quad \frac{\theta_L}{1-N^H_t} = \mu_t\,\big(1-\tfrac{1}{2}\tau^N_t\big)\,w_t")
         st.markdown(
-            r"Compare the optimizers' $\partial N^O_t$ condition: $w_t$ here is not multiplied "
-            r"by $(1-\tau^Y_t)$, because the hand-to-mouth households' wages are not taxed."
+            r"Compare the optimizers' $\partial N^O_t$ condition: $w_t$ here is multiplied by "
+            r"$(1-\tau^N_t/2)$ instead of $(1-\tau^N_t)$, because the hand-to-mouth households' "
+            r"wages are taxed at half the rate. Write $w^H_t=(1-\tau^N_t/2)\,w_t$ for their "
+            r"after-tax wage."
         )
         st.markdown(
             r"**Step 3. Labor-leisure (when $N^H_t>0$).** Divide the $\partial N^H_t$ condition "
             r"by the $\partial C^H_t$ condition; $\mu_t$ cancels."
         )
-        st.latex(r"\underbrace{\theta_L\,\frac{C^H_t+\phi\,G^C_t}{1-N^H_t}}_{\text{value of an hour of leisure, in goods}} = \underbrace{\frac{w_t}{1+\tau^C_t}}_{\text{goods an hour of work buys}}")
+        st.latex(r"\underbrace{\theta_L\,\frac{C^H_t+\phi\,G^C_t}{1-N^H_t}}_{\text{value of an hour of leisure, in goods}} = \underbrace{\frac{w^H_t}{1+\tau^C_t}}_{\text{goods an hour of work buys, after taxes}}")
         st.markdown(
-            r"This is the optimizers' rule with $(1-\tau^Y_t)$ removed. If even the first hour "
-            r"of work is worth less than leisure, $\theta_L\,(C^H_t+\phi\,G^C_t) \ge w_t/(1+\tau^C_t)$ "
+            r"This is the optimizers' rule with $w^H_t$ in place of $(1-\tau^N_t)w_t$. If even the first hour "
+            r"of work is worth less than leisure, $\theta_L\,(C^H_t+\phi\,G^C_t) \ge w^H_t/(1+\tau^C_t)$ "
             r"at $N^H_t=0$, they do not work: $N^H_t=0$."
         )
         st.markdown(r"**Step 4. No Euler equation.**")
@@ -367,17 +370,17 @@ def render():
             r"The Euler equation links today's consumption to tomorrow's through saving. "
             r"Hand-to-mouth households cannot save or borrow, so they have no such link "
             r"and no Euler equation. Their budget takes its place and fixes consumption each "
-            r"year. So $R_{t+1}$, $\tau^Y_{t+1}$ and future policy do not enter their choices; "
-            r"only this year's $w_t$, $\tau^C_t$, $G^T_t$, $G^C_t$ and $T_t$ do."
+            r"year. So $R_{t+1}$, $\tau^K_{t+1}$ and future policy do not enter their choices; "
+            r"only this year's $w_t$, $\tau^N_t$, $\tau^C_t$, $G^T_t$ and $G^C_t$ do."
         )
-        st.latex(r"(1+\tau^C_t)\,C^H_t = w_t N^H_t + \frac{G^T_t}{\lambda} - T_t")
+        st.latex(r"(1+\tau^C_t)\,C^H_t = w^H_t N^H_t + \frac{G^T_t}{\lambda}")
         st.markdown(
             r"**Step 5. Hours and consumption.** Substitute $C^H_t$ from the budget into the "
             r"labor-leisure rule, multiply both sides by $(1+\tau^C_t)(1-N^H_t)$, and solve "
             r"for $N^H_t$:"
         )
-        st.latex(r"N^H_t = \max\Bigg\{0,\ \frac{w_t - \theta_L\left(\dfrac{G^T_t}{\lambda} - T_t + (1+\tau^C_t)\,\phi\,G^C_t\right)}{(1+\theta_L)\,w_t}\Bigg\}")
-        st.latex(r"C^H_t = \frac{w_t N^H_t + G^T_t/\lambda - T_t}{1+\tau^C_t}")
+        st.latex(r"N^H_t = \max\Bigg\{0,\ \frac{w^H_t - \theta_L\left(\dfrac{G^T_t}{\lambda} + (1+\tau^C_t)\,\phi\,G^C_t\right)}{(1+\theta_L)\,w^H_t}\Bigg\}")
+        st.latex(r"C^H_t = \frac{w^H_t N^H_t + G^T_t/\lambda}{1+\tau^C_t}")
 
     st.subheader("A.5 Government")
     st.markdown(
@@ -401,12 +404,16 @@ def render():
     spending that each tax pays for, and the three shares add up to one. The tax rates then
     adjust each year so that each tax raises exactly its share.
 
-    The lump-sum tax is paid by everyone in the same amount. Since the population is one,
-    the lump-sum tax each person pays equals the lump-sum share times total spending.
+    The capital tax falls on rental income, and only the optimizers own machines. The
+    capital-tax rate times the island's total rental income, the rental rate times all the
+    machines, must equal the capital-tax share times total spending. Since the firms pay
+    the private-capital elasticity's share of output as rent, the capital-tax rate is the
+    capital-tax share of spending divided by that share of output.
 
-    The income tax falls only on the optimizers. The income-tax rate, times the optimizers'
-    population share, times each optimizer's income from wages and rents, must equal the
-    income-tax share times total spending.
+    The labor tax falls on everyone's wages, at the full rate for optimizers and half the
+    rate for hand-to-mouth households. The rate times the optimizers' wage bill, plus half
+    the rate times the hand-to-mouth households' wage bill, must equal the labor-tax share
+    times total spending.
 
     Both kinds of household pay the consumption tax. The consumption-tax rate times the
     island's total private consumption must equal the consumption-tax share times total
@@ -415,9 +422,9 @@ def render():
     )
     with st.container(border=True):
         st.markdown("**In symbols**")
-        st.markdown(r"With $f^{LS}+f^Y+f^C=1$:")
-        st.latex(r"T_t = f^{LS}\,G_t, \qquad \tau^C_t\,C_t = f^C G_t")
-        st.latex(r"\tau^Y_t\,(1-\lambda)\big(w_t N^O_t + R_t K^O_t\big) = f^Y G_t")
+        st.markdown(r"With $f^K+f^N+f^C=1$:")
+        st.latex(r"\tau^K_t\,R_t K_t = f^K G_t \quad\Longleftrightarrow\quad \tau^K_t = \frac{f^K G_t}{\theta_K Y_t}, \qquad \tau^C_t\,C_t = f^C G_t")
+        st.latex(r"\tau^N_t\,(1-\lambda)\,w_t N^O_t + \tfrac{1}{2}\tau^N_t\,\lambda\,w_t N^H_t = f^N G_t")
 
     st.subheader("A.6 Market clearing and equilibrium")
     st.markdown(
@@ -465,7 +472,7 @@ def render():
         st.markdown("**In symbols**")
         st.markdown(
             r"An equilibrium is a sequence $\{w_t, R_t, C^O_t, C^H_t, N^O_t, N^H_t, I^O_t, "
-            r"K^O_{t+1}, K^G_{t+1}, \tau^Y_t, \tau^C_t, T_t\}_{t\ge0}$ satisfying the "
+            r"K^O_{t+1}, K^G_{t+1}, \tau^K_t, \tau^N_t, \tau^C_t\}_{t\ge0}$ satisfying the "
             r"conditions of A.2–A.5, the aggregation identities, and the goods-market "
             r"condition, for every $t$."
         )
@@ -476,16 +483,16 @@ def render():
     **The steady state.** Suppose the island has settled down so that nothing changes from
     one year to the next. Then today's and tomorrow's effective consumption are the same,
     the tax rates are the same, and the Euler equation becomes very simple: the rental
-    rate, after the income tax has taken its fraction, must equal the real interest rate
+    rate, after the capital tax has taken its fraction, must equal the real interest rate
     plus the depreciation rate. In words, the after-tax return on a machine must be just
     enough to pay the interest on the funds tied up in it and to replace the part that
     wears out.
 
     This rule fixes the rental rate, and through the firms' rental rule it fixes how many
-    machines are used per hour of work. A higher income-tax rate means the before-tax
+    machines are used per hour of work. A higher capital-tax rate means the before-tax
     rental rate must be higher to leave the same after-tax return, and a higher rental rate
-    means fewer machines per worker. The consumption tax does not appear in this rule at
-    all.
+    means fewer machines per worker. The labor and consumption taxes do not appear in this
+    rule at all.
 
     Public capital also settles down. It stops changing when public investment just
     replaces what wears out, so in the long run public capital equals public investment
@@ -500,7 +507,7 @@ def render():
     with st.container(border=True):
         st.markdown("**In symbols**")
         st.markdown(r"With all variables constant and $\beta=1/(1+r)$, the Euler equation becomes")
-        st.latex(r"(1-\tau^Y)\,R = r + \delta")
+        st.latex(r"(1-\tau^K)\,R = r + \delta")
         st.markdown(r"With $R=\theta_K Y/K$ and the production function, this fixes the capital-labor ratio:")
         st.latex(r"\frac{K}{N} = \left[\frac{\theta_K\,(K^G/\bar K^G)^{\theta_G}}{R}\right]^{1/\theta_N}")
         st.latex(r"K^G = \frac{I^G}{\delta}")
@@ -525,7 +532,7 @@ def render():
     st.markdown(
         """
     **Special case.** Strip the island down. Make the hand-to-mouth share zero, so that
-    everyone is an optimizer. Use only one tax, either all lump-sum or all income tax. And
+    everyone is an optimizer. Use only one of the three taxes. And
     spend all government money on things households do not value: in-kind welfare with an
     in-kind value of zero, or public investment with a public-capital elasticity of zero.
     What is left is the standard neoclassical growth model with government spending.
@@ -534,30 +541,31 @@ def render():
     with st.container(border=True):
         st.markdown("**In symbols**")
         st.markdown(
-            r"Special case: $\lambda=0$; $f^{LS}=1$ or $f^Y=1$; spending on $G^C$ "
+            r"Special case: $\lambda=0$; $f^K=1$, $f^N=1$ or $f^C=1$; spending on $G^C$ "
             r"with $\phi=0$, or on $I^G$ with $\theta_G=0$."
         )
     st.markdown(
         """
-    **One result to explore.** Suppose there is no income tax, so the government uses only
-    the lump-sum and consumption taxes. Then shifting cash welfare toward the hand-to-mouth
+    **One result to explore.** Suppose there is no labor tax, so the government uses only
+    the capital and consumption taxes. Then shifting cash welfare toward the hand-to-mouth
     households changes *who* does the island's work, but not *total* long-run output, as
     long as the hand-to-mouth households still work some hours. The reason is that, with
     logarithmic happiness, the two kinds of household's work-versus-leisure rules add up to
     a single rule for the whole island, and a transfer from one kind to the other does not
-    change that combined rule. Once there is an income tax, which only the optimizers pay,
-    the two rules no longer face the same after-tax wage, they no longer add up to one
-    rule, and the result no longer holds.
+    change that combined rule. The capital tax does not upset this, since it does not enter
+    the work-versus-leisure rules. Once there is a labor tax, which hand-to-mouth households
+    pay at only half the optimizers' rate, the two rules no longer face the same after-tax
+    wage, they no longer add up to one rule, and the result no longer holds.
     """
     )
     with st.container(border=True):
         st.markdown("**In symbols**")
-        st.markdown(r"If $\tau^Y=0$ and $N^H>0$, both types $i=O,H$ satisfy")
+        st.markdown(r"If $\tau^N=0$ and $N^H>0$, both types $i=O,H$ satisfy")
         st.latex(r"\theta_L\,(C^i+\phi G^C) = \frac{w}{1+\tau^C}\,(1-N^i)")
         st.markdown(r"Weighting by $1-\lambda$ and $\lambda$ and adding gives one aggregate condition,")
         st.latex(r"\theta_L\,(C+\phi G^C) = \frac{w}{1+\tau^C}\,(1-N)")
         st.markdown(
             r"which does not depend on how income is split between the types. With "
-            r"$\tau^Y>0$ the optimizers face $(1-\tau^Y)w$ instead of $w$, and the "
-            r"conditions no longer aggregate."
+            r"$\tau^N>0$ the optimizers face $(1-\tau^N)w$ and the hand-to-mouth households "
+            r"$(1-\tau^N/2)w$, and the conditions no longer aggregate."
         )

@@ -19,6 +19,7 @@ from plotly.subplots import make_subplots
 
 import appendix
 from fiscal_model import (
+    HTM_LABOR_TAX_SHARE,
     calibrate_theta_L,
     consumption_equivalent,
     household_outcomes,
@@ -88,13 +89,15 @@ def level_panels(series_specs, yrs):
 
 
 def government_revenue(out):
-    """Total tax revenue from `household_outcomes`: the lump-sum tax (everyone pays it),
-    the income tax on optimizers' labor income and all capital income (hand-to-mouth
-    households pay no income tax), and the consumption tax on total consumption."""
+    """Total tax revenue from `household_outcomes`: the capital tax on all rental income
+    (optimizers own the capital), the labor tax on optimizers' wages at τⁿ and on
+    hand-to-mouth households' wages at τⁿ/2, and the consumption tax on total consumption."""
     lam = out["lam"]
     C = (1.0 - lam) * out["CO"] + (lam * out["CH"] if lam > 0 else 0.0)
-    taxed_income = (1.0 - lam) * out["labor_O"] + out["capital"]
-    return out["T"] + out["tau_y"] * taxed_income + out["tau_c"] * C
+    labor_tax = (1.0 - lam) * out["tau_n"] * out["labor_O"]
+    if lam > 0:
+        labor_tax = labor_tax + lam * out["tau_nH"] * out["labor_H"]
+    return out["tau_k"] * out["capital"] + labor_tax + out["tau_c"] * C
 
 
 def equilibrium_rows(ss, show_types, out=None, inequality=True):
@@ -120,9 +123,14 @@ def equilibrium_rows(ss, show_types, out=None, inequality=True):
         ("Gov't expenditure", "  Cash welfare Gᵀ", ss.GT),
         ("Gov't revenue", "Government revenue (total)",
          government_revenue(out)[0]),
-        ("Gov't revenue", "Income-tax rate τʸ (%)", ss.tau_y * 100),
+        ("Gov't revenue", "Capital-tax rate τᵏ (%)", ss.tau_k * 100),
+        ("Gov't revenue", "Labor-tax rate, optimizers τⁿ (%)", ss.tau_n * 100),
+    ]
+    if show_types:
+        rows.append(("Gov't revenue", "Labor-tax rate, hand-to-mouth τⁿ/2 (%)",
+                     HTM_LABOR_TAX_SHARE * ss.tau_n * 100))
+    rows += [
         ("Gov't revenue", "Consumption-tax rate τᶜ (%)", ss.tau_c * 100),
-        ("Gov't revenue", "Lump-sum tax T (per person)", ss.T),
     ]
     if show_types:
         o, h = "Optimizers (share 1−λ)", "Hand-to-mouth (share λ)"
@@ -259,14 +267,14 @@ r_pct = BENCH_r_pct
 # The default benchmark policy scenario (percentages, except θ_G, φ and λ).
 # Preferences are always calibrated to it, so the same settings always describe
 # the same economy, whatever benchmark a user compares against.
-DEFAULT_BENCH = dict(f_LS=50.0, f_Y=20.0, f_C=30.0, theta_G=0.10, s_G=20.0,
+DEFAULT_BENCH = dict(f_K=30.0, f_N=40.0, f_C=30.0, theta_G=0.10, s_G=20.0,
                    f_IG=20.0, f_GC=50.0, f_GT=30.0, phi=0.10, lam=0.30)
 
 # The benchmark in use: the sidebar's defaults (and Reset target), and the reference
 # point Sections S1 and S2 compare the current settings against. A user can replace
 # it for the rest of their session with "⚙ Benchmark".
 bench = st.session_state.get("bench", DEFAULT_BENCH)
-BENCH_f_LS_pct, BENCH_f_Y_pct, BENCH_f_C_pct = bench["f_LS"], bench["f_Y"], bench["f_C"]
+BENCH_f_K_pct, BENCH_f_N_pct, BENCH_f_C_pct = bench["f_K"], bench["f_N"], bench["f_C"]
 BENCH_theta_G = bench["theta_G"]
 BENCH_s_G_pct = bench["s_G"]
 BENCH_f_IG_pct, BENCH_f_GC_pct, BENCH_f_GT_pct = bench["f_IG"], bench["f_GC"], bench["f_GT"]
@@ -289,8 +297,8 @@ def benchmark_dialog():
     k = lambda name: f"bench_{name}_{st.session_state['reset_version']}"
     st.markdown("**A. Tax revenue shares (%)**")
     c1, c2, c3 = st.columns(3)
-    f_LS = c1.number_input("Lump-sum (%)", 0.0, 100.0, bench["f_LS"], 5.0, key=k("f_LS"))
-    f_Y = c2.number_input("Income (%)", 0.0, 100.0, bench["f_Y"], 5.0, key=k("f_Y"))
+    f_K = c1.number_input("Capital (%)", 0.0, 100.0, bench["f_K"], 5.0, key=k("f_K"))
+    f_N = c2.number_input("Labor (%)", 0.0, 100.0, bench["f_N"], 5.0, key=k("f_N"))
     f_C = c3.number_input("Consumption (%)", 0.0, 100.0, bench["f_C"], 5.0, key=k("f_C"))
     theta_G_b = st.slider("B. Public-capital productivity, θ_G", 0.00, 0.20,
                           bench["theta_G"], 0.01, key=k("theta_G"))
@@ -305,7 +313,7 @@ def benchmark_dialog():
     f_GT = c3.number_input("Cash Gᵀ (%)", 0.0, 100.0, bench["f_GT"], 5.0, key=k("f_GT"))
     lam_b = st.slider("F. Hand-to-mouth share of households, λ", 0.0, 0.9, bench["lam"],
                       0.05, key=k("lam"))
-    tax_sum, comp_sum = f_LS + f_Y + f_C, f_IG + f_GC + f_GT
+    tax_sum, comp_sum = f_K + f_N + f_C, f_IG + f_GC + f_GT
     b1, b2 = st.columns(2)
     if b1.button("Apply", type="primary", use_container_width=True):
         if tax_sum <= 0 or comp_sum <= 0:
@@ -313,7 +321,7 @@ def benchmark_dialog():
             return
         # Shares that don't add up to 100% are rescaled, as in the sidebar.
         st.session_state["bench"] = dict(
-            f_LS=100 * f_LS / tax_sum, f_Y=100 * f_Y / tax_sum, f_C=100 * f_C / tax_sum,
+            f_K=100 * f_K / tax_sum, f_N=100 * f_N / tax_sum, f_C=100 * f_C / tax_sum,
             theta_G=theta_G_b, s_G=s_G_b, f_IG=100 * f_IG / comp_sum,
             f_GC=100 * f_GC / comp_sum, f_GT=100 * f_GT / comp_sum, phi=phi_b, lam=lam_b)
         reset_to_benchmark()
@@ -356,17 +364,22 @@ if "bench" in st.session_state:
 # 1. Financing rule -----------------------------------------------------
 st.sidebar.subheader("A. Tax shares of revenue (%)")
 tax_c1, tax_c2, tax_c3 = st.sidebar.columns(3)
-in_LS = tax_c1.number_input("Lump-sum", 0.0, 100.0, BENCH_f_LS_pct, 5.0, key=wkey("in_LS"))
-in_Y = tax_c2.number_input("Income", 0.0, 100.0, BENCH_f_Y_pct, 5.0, key=wkey("in_Y"))
-in_C = tax_c3.number_input("Consumption", 0.0, 100.0, BENCH_f_C_pct, 5.0, key=wkey("in_C"))
-tax_total = in_LS + in_Y + in_C
+TAX_HELP = ("Each tax raises this share of government spending G every year. The capital "
+            "tax τᵏ falls on rental income from capital R·K, which only optimizers own. The "
+            "labor tax falls on wages: optimizers pay τⁿ and hand-to-mouth households half "
+            "of it, τⁿ/2. The consumption tax τᶜ falls on everyone's consumption.")
+in_K = tax_c1.number_input("Capital", 0.0, 100.0, BENCH_f_K_pct, 5.0, help=TAX_HELP, key=wkey("in_K"))
+in_N = tax_c2.number_input("Labor", 0.0, 100.0, BENCH_f_N_pct, 5.0, help=TAX_HELP, key=wkey("in_N"))
+in_C = tax_c3.number_input("Consumption", 0.0, 100.0, BENCH_f_C_pct, 5.0, help=TAX_HELP, key=wkey("in_C"))
+tax_total = in_K + in_N + in_C
 if tax_total <= 0:
-    st.sidebar.error("At least one share must be positive; using 100% lump-sum tax.")
-    in_LS, in_Y, in_C, tax_total = 100.0, 0.0, 0.0, 100.0
+    st.sidebar.error("At least one share must be positive; using the benchmark's shares.")
+    in_K, in_N, in_C = BENCH_f_K_pct, BENCH_f_N_pct, BENCH_f_C_pct
+    tax_total = in_K + in_N + in_C
 elif abs(tax_total - 100.0) > 1e-9:
     st.sidebar.warning(f"The shares add up to {tax_total:.0f}%, not 100%, so they are "
                         f"rescaled proportionally.")
-tax_mix_v = (in_LS / tax_total, in_Y / tax_total, in_C / tax_total)
+tax_mix_v = (in_K / tax_total, in_N / tax_total, in_C / tax_total)
 
 # 2. theta_G -----------------------------------------------------------------
 theta_G = st.sidebar.slider(
@@ -384,7 +397,7 @@ phi = st.sidebar.slider(
     "**C. Value of in-kind welfare Gᶜ, φ**", 0.0, 1.0, BENCH_phi, 0.05,
     help="Utility is ln(C + φ·Gᶜ) + θ_L·ln(1−N). φ=0: Gᶜ is a pure drain. "
          "φ=1: Gᶜ is a perfect substitute for private consumption, "
-         "so under lump-sum financing it crowds out C one-for-one and leaves output unchanged.",
+         "so it crowds out C one-for-one.",
     key=wkey("phi"),
 )
 
@@ -436,8 +449,8 @@ f_GT_pct = 100.0 * in_GT / comp_total
 lam = st.sidebar.slider(
     "**F. Hand-to-mouth share, λ**", 0.0, 0.9, BENCH_lam, 0.05,
     help="Hand-to-mouth (non-Ricardian) working families own no capital, spend all their "
-         "income each period, pay no income tax, and receive all cash welfare Gᵀ. They "
-         "pay the lump-sum tax and the consumption tax like everyone else. Optimizers own "
+         "income each period, and receive all cash welfare Gᵀ. They pay half the "
+         "optimizers' labor-tax rate, τⁿ/2, and the consumption tax. Optimizers own "
          "the capital, pay all three taxes, and receive no cash welfare. Both types "
          "benefit from Gᶜ. λ=0 is a single representative household.",
     key=wkey("lam"),
@@ -476,7 +489,7 @@ s_G_up_v = s_G_new_v + dG_pct / 100.0
 
 BENCH_f_IG, BENCH_f_GC, BENCH_f_GT = BENCH_f_IG_pct / 100.0, BENCH_f_GC_pct / 100.0, BENCH_f_GT_pct / 100.0
 BENCH_s_G = BENCH_s_G_pct / 100.0
-BENCH_tax_mix = (BENCH_f_LS_pct / 100.0, BENCH_f_Y_pct / 100.0, BENCH_f_C_pct / 100.0)
+BENCH_tax_mix = (BENCH_f_K_pct / 100.0, BENCH_f_N_pct / 100.0, BENCH_f_C_pct / 100.0)
 # theta_L is calibrated once, so hours are N_target in the benchmark scenario, and
 # then held fixed for every other setting -- if each sidebar configuration
 # recalibrated its own theta_L, hours would always land back on exactly N_target by
@@ -508,7 +521,7 @@ def benchmark_calibration(theta_N, delta, r, s_G, f_IG, f_GC, f_GT, tax_mix, N_t
 P = DEFAULT_BENCH  # calibrate to the default benchmark, whatever benchmark is in use
 KG_ref, theta_L_bench = benchmark_calibration(
     theta_N, delta_pct / 100.0, BENCH_r_pct / 100.0, P["s_G"] / 100.0, P["f_IG"] / 100.0,
-    P["f_GC"] / 100.0, P["f_GT"] / 100.0, (P["f_LS"] / 100.0, P["f_Y"] / 100.0, P["f_C"] / 100.0),
+    P["f_GC"] / 100.0, P["f_GT"] / 100.0, (P["f_K"] / 100.0, P["f_N"] / 100.0, P["f_C"] / 100.0),
     N_target_pct / 100.0, P["phi"], P["lam"], P["theta_G"])
 A_bench = KG_ref ** -BENCH_theta_G
 A_v = KG_ref ** -theta_G_v
@@ -535,7 +548,7 @@ except ValueError as exc:  # the steady state itself is infeasible
     error = str(exc)
 except RuntimeError as exc:  # raised by _solve_saddle_path only
     # The transition-path solver can lose saddle-path stability at extreme tax
-    # rates (very high income-tax G/Y, especially with a low investment share)
+    # rates (very high capital- or labor-tax rates, especially with a low investment share)
     # even though the two steady states themselves are perfectly well-defined --
     # fall back to the steady states alone, so S3's long-run multipliers still
     # work; only its impact column needs the path and shows a scoped note below
@@ -565,14 +578,14 @@ if path_error:
     st.warning(
         f"⚠️ At these settings, the transition-path solver lost **saddle-path "
         f"stability**: *{path_error}* This happens at sufficiently extreme "
-        f"income-tax rates (especially combined with a low public-investment "
+        f"capital- and labor-tax rates (especially combined with a low public-investment "
         f"share), where the linearized model no longer has a well-defined "
         f"perfect-foresight path -- it is a genuine limit of this local "
         f"linearization at extreme calibrations, not a bug. The **steady-state "
         f"comparisons and long-run multipliers below are still exact and "
         f"valid**; only the transition-path charts and impact multipliers need a "
         f"stable path and are skipped. "
-        f"Try a lower total government spending (item D.1), a larger lump-sum "
+        f"Try a lower total government spending (item D.1), a larger consumption-tax "
         f"share (item A), or a higher public-investment share (item E) -- all three "
         f"push the instability threshold higher."
     )
@@ -622,8 +635,8 @@ st.info(
 )
 st.subheader("S1. Comparison between Old and New Equilibrium")
 st.write("Exact, closed-form solution of the model's long-run (“great ratios”) "
-         f"equilibrium: the **benchmark scenario** (tax revenue {BENCH_f_LS_pct:.0f}% lump-sum, "
-         f"{BENCH_f_Y_pct:.0f}% income tax, {BENCH_f_C_pct:.0f}% consumption tax; "
+         f"equilibrium: the **benchmark scenario** (tax revenue {BENCH_f_K_pct:.0f}% capital "
+         f"tax, {BENCH_f_N_pct:.0f}% labor tax, {BENCH_f_C_pct:.0f}% consumption tax; "
          f"θ_G={BENCH_theta_G:.2f}, r={BENCH_r_pct}%, G/Y={BENCH_s_G_pct:.0f}% split into "
          f"{BENCH_f_IG_pct:.0f}% public investment, {BENCH_f_GC_pct:.0f}% in-kind welfare and "
          f"{BENCH_f_GT_pct:.0f}% cash welfare, φ={BENCH_phi:.2f}, hand-to-mouth share "
@@ -786,11 +799,11 @@ if not benchmark_error and cumulative_path is not None:
                                     "steady state (the benchmark, the current settings, the end of "
                                     "the path) has the same r. **Along the path r is the market "
                                     "return** and moves: the Euler equation sets "
-                                    "rₜ = (1−τʸₜ₊₁)·Rₜ₊₁ − δ, the after-tax return on capital "
+                                    "rₜ = (1−τᵏₜ₊₁)·Rₜ₊₁ − δ, the after-tax return on capital "
                                     "next year. At year 0 capital is stuck at its old level while "
                                     "hours jump, so R, and with it r, jumps; as capital adjusts, r "
                                     "returns to the benchmark's. R need not return: in steady state "
-                                    "(1−τʸ)R = r + δ, so R moves with the income-tax rate. R comes "
+                                    "(1−τᵏ)R = r + δ, so R moves with the capital-tax rate. R comes "
                                     "from the model's exact equations along the path."),
         "Labor market": ([("Total Hours N (% of time)", from_bench(cp.N, b.N * 100), "#2563eb", b.N * 100),
                           ("Real wage w", from_bench(cp.W, b.w), "#dc2626", b.w),
@@ -809,13 +822,17 @@ if not benchmark_error and cumulative_path is not None:
                                 "Each part of G moves one for one with total G."),
         "Gov't revenue": ([("Government revenue (total)", government_revenue(perf), "#6b7280",
                             government_revenue(perf_bench)[0]),
-                           ("Income-tax rate τʸ (%)", perf["tau_y"] * 100, "#2563eb", b.tau_y * 100),
-                   ("Consumption-tax rate τᶜ (%)", perf["tau_c"] * 100, "#16a34a", b.tau_c * 100),
-                   ("Lump-sum tax T (per person)", perf["T"], "#f59e0b", b.T)],
+                           ("Capital-tax rate τᵏ (%)", perf["tau_k"] * 100, "#f59e0b", b.tau_k * 100),
+                           ("Labor-tax rate, optimizers τⁿ (%)", perf["tau_n"] * 100, "#2563eb",
+                            b.tau_n * 100)]
+                          + ([("Labor-tax rate, hand-to-mouth τⁿ/2 (%)", perf["tau_nH"] * 100,
+                               "#db2777", HTM_LABOR_TAX_SHARE * b.tau_n * 100)] if show_types else [])
+                          + [("Consumption-tax rate τᶜ (%)", perf["tau_c"] * 100, "#16a34a",
+                              b.tau_c * 100)],
                   "Tax rates adjust every year so each tax raises its share of G (item A), so "
-                  "total revenue, T + τʸ·(taxed income) + τᶜ·C, equals government spending G "
-                  "every year (a balanced budget). They come from the model's exact equations "
-                  "along the path."),
+                  "total revenue, τᵏ·RK + τⁿ·(optimizers' wages) + (τⁿ/2)·(hand-to-mouth wages) "
+                  "+ τᶜ·C, equals government spending G every year (a balanced budget). They "
+                  "come from the model's exact equations along the path."),
     }
     if show_types:
         group_note = ("Per person is one household of the type; group total is the type's part "
@@ -874,9 +891,10 @@ if not benchmark_error and cumulative_path is not None:
             "before taxes and without cash welfare; the two group totals add up to wN + RK. "
             "**Disposable income** is what each household "
             "can spend, the right-hand side of its budget constraint (Appendix A.3-A.4): for "
-            "optimizers, after-income-tax labor and capital income minus the lump-sum tax; for "
-            "hand-to-mouth households, their wage income plus cash welfare minus the lump-sum "
-            "tax. Both then pay the consumption tax on what they consume out of it. These come "
+            "optimizers, labor income after the labor tax τⁿ plus capital income after the "
+            "capital tax τᵏ; for hand-to-mouth households, their wage income after the labor "
+            "tax τⁿ/2 plus cash welfare. Both then pay the consumption tax on what they "
+            "consume out of it. These come "
             "from the model's exact equations along the path.")
         s1b_tabs["Inequality"] = (
             [("Gini coefficient of market income", two_group_gini(e.lam, m_H, m_O), "#f59e0b",
@@ -898,9 +916,10 @@ if not benchmark_error and cumulative_path is not None:
             "disposable income shows how much taxes and transfers reduce inequality. "
             "Optimizers' disposable income includes what they save, so the consumption ratio "
             "is often a better guide to living standards. Both types face the same wage, so "
-            "the hours gap comes from differences in wealth and taxes: cash welfare and a lower "
-            "lump-sum tax make hand-to-mouth households work less, while the income tax "
-            "lowers only optimizers' after-tax wage. A positive gap means optimizers work more.")
+            "the hours gap comes from differences in wealth and taxes: cash welfare makes "
+            "hand-to-mouth households work less, while their lower labor-tax rate (τⁿ/2) "
+            "makes them work more, and optimizers' capital income makes them work less. A "
+            "positive gap means optimizers work more.")
         beta_w = 1.0 / (1.0 + r_v)
         yearly = period_welfare_gains(perf_bench, perf, theta_L_bench, phi_v)
         gains_acc = welfare_gains(perf_bench, perf, beta_w, theta_L_bench, phi_v)
@@ -997,7 +1016,7 @@ def year0_economy(ss0, ss1, pth):
         K=base.K * np.exp(k), KG=base.KG * np.exp(kg), r=ss0.r + pth.r_bp[0] / 1e4,
         theta_K=base.theta_K, N=out["N"][0], w=out["w"][0],
         G=base.G * np.exp(g), IG=base.IG * np.exp(g), GC=out["GC"][0], GT=base.GT * np.exp(g),
-        tau_y=out["tau_y"][0], tau_c=out["tau_c"][0], T=out["T"][0], lam=lam,
+        tau_k=out["tau_k"][0], tau_n=out["tau_n"][0], tau_c=out["tau_c"][0], lam=lam,
         CO=CO, NO=out["NO"][0], CH=CH, NH=out["NH"][0])
     return eco, out
 
@@ -1091,9 +1110,9 @@ for rows, title, height in () if dG_pct == 0 else (
 
 st.caption(
     "A multiplier above +1.00 for Output means a marginal dollar of government "
-    "spending raises long-run output by more than a dollar. This can happen under "
-    "lump-sum financing (labor supply rises from the negative wealth effect, and, if "
-    "θ_G>0, public investment directly raises productivity). Below 0, the higher income- "
+    "spending raises long-run output by more than a dollar. This can happen when "
+    "public investment directly raises productivity (θ_G>0) and labor supply rises from "
+    "the negative wealth effect of higher taxes. Below 0, the higher capital-, labor- "
     "and consumption-tax rates that pay for the spending depress work effort and capital "
     "formation by more than the spending's direct resource cost. Capital is fixed on impact, "
     "so its impact multiplier is zero, while investment's can be large: capital starts "
@@ -1123,10 +1142,12 @@ with st.expander("ℹ️ Methodology notes"):
   spending path directly) so no 3-variable generalization of the eigen-decomposition is
   needed.
 - **Tax mix (item A)**: three taxes together raise revenue equal to total government
-  spending G every year, each a fixed share of it (the default benchmark: 50% lump-sum, 20% income
-  tax, 30% consumption tax); their rates adjust year by year so that they do. The
-  lump-sum tax is a true non-distorting poll tax. The income tax puts a (1-τʸ) wedge
-  on both the labor-leisure and the saving (Euler) margin. The consumption tax puts a
+  spending G every year, each a fixed share of it (the default benchmark: 30% capital
+  tax, 40% labor tax, 30% consumption tax); their rates adjust year by year so that they
+  do. The capital tax τᵏ on rental income R·K puts a (1-τᵏ) wedge on the saving (Euler)
+  margin. The labor tax puts a (1-τⁿ) wedge on optimizers' labor-leisure margin and a
+  (1-τⁿ/2) wedge on hand-to-mouth households', a simple progressive scheme: their rate is
+  always half the optimizers'. The consumption tax puts a
   1/(1+τᶜ) wedge on the labor-leisure margin only: it lowers what an hour of work
   buys, while a rate that stays constant over time leaves saving undistorted. Because
   the wedges sit on the *margin*, not on net revenue, changing the tax mix alone
@@ -1140,23 +1161,21 @@ with st.expander("ℹ️ Methodology notes"):
   welfare Gᵀ (transfers paid to households). The three shares are typed in as
   percentages; if they don't add up to 100% they are rescaled proportionally. Iᴳ and
   Gᶜ use up output (Y=C+I+Iᴳ+Gᶜ); Gᵀ only moves income to households. With φ=0, Gᶜ
-  is a pure drain; with φ=1 and lump-sum financing it
-  crowds out private consumption one-for-one and leaves output unchanged.
+  is a pure drain; with φ=1 it crowds out private consumption one-for-one.
 - **Household types (item F)**: a share λ of households are hand-to-mouth working
-  families (no capital, no saving, no income tax, all of the cash welfare Gᵀ); the
-  rest are optimizers (own the capital, pay the income tax, no cash welfare).
-  Everyone pays the same per-person lump-sum tax and the consumption tax. Both types
-  benefit from Gᶜ. Transition paths are linearized *numerically* around the steady
-  state; with λ=0 and a single lump-sum or income tax this reproduces the analytic
-  linearization. See Appendix A.3-A.4.
+  families (no capital, no saving, labor tax at τⁿ/2, all of the cash welfare Gᵀ); the
+  rest are optimizers (own the capital, pay the capital tax and the labor tax at τⁿ, no
+  cash welfare). Everyone pays the consumption tax. Both types benefit from Gᶜ.
+  Transition paths are linearized *numerically* around the steady state. See Appendix
+  A.3-A.4.
 - **S1 (Comparison between Old and New Equilibrium)** compares a benchmark scenario (by default the app's, which "Set benchmark
-  economy" can replace: tax revenue 50% lump-sum, 20% income tax, 30% consumption tax; θ_G=0.10, r=6.5%, G/Y=20% split
+  economy" can replace: tax revenue 30% capital tax, 40% labor tax, 30% consumption tax; θ_G=0.10, r=6.5%, G/Y=20% split
   20/50/30 into public investment,
   in-kind welfare and cash welfare, φ=0.10, λ=0.3; θ_N=0.58, δ=10% and 20% target
   hours) against whatever the sidebar is *currently*
   set to, so every control (tax mix, composition, φ, θ_G, G/Y, household types)
-  shows up as a difference there -- including the tax mix alone, since the income-
-  and consumption-tax wedges distort households' margins independent of net revenue.
+  shows up as a difference there -- including the tax mix alone, since the capital-,
+  labor- and consumption-tax wedges distort households' margins independent of net revenue.
 - **S2 (Transition from Old to New Equilibrium)** imagines the economy starting at the benchmark's capital stocks with the
   current regime put permanently in place.
 - **Incomes, inequality and welfare** appear in S1 for the two steady states and in
