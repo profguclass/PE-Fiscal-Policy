@@ -14,7 +14,7 @@ the long run and year by year along the transition.
 | A | Total government spending, G/Y, before any change |
 | B | Composition of spending: public investment, in-kind welfare and cash welfare |
 | C | Change in G/Y: by how many percentage points (C1), so the current economy has G/Y = A + C1; whether the change is permanent or temporary, and for how many years (C2); how the change splits across public investment, in-kind welfare and cash welfare, in percentage points (C3) |
-| D | Tax mix: the shares of revenue from the capital, labor and consumption taxes |
+| D | Tax mix: the shares of revenue from the labor, capital and consumption taxes, and the hand-to-mouth households' labor-tax rate as a percentage h of the optimizers' |
 | E | How much households value in-kind welfare, φ |
 | F | Share of hand-to-mouth households, λ |
 | G | Public-capital productivity, θ_G |
@@ -22,9 +22,9 @@ the long run and year by year along the transition.
 Items A–D are fiscal policy. Items E–G are exogenous parameters, features of the
 economy rather than policy choices, grouped in their own box in the sidebar.
 
-The benchmark economy raises revenue 30% from the capital tax, 40% from the labor
-tax and 30% from the consumption tax, with G/Y = 20% split 20/50/30 across public investment, in-kind
-welfare and cash welfare, θ_G = 0.10, φ = 0.10 and λ = 0.30. Users can replace
+The benchmark economy raises revenue 30% from the labor tax, 30% from the capital
+tax and 40% from the consumption tax, with G/Y = 20% split 20/50/30 across public investment, in-kind
+welfare and cash welfare, θ_G = 0.10, φ = 0.50, λ = 0.30 and h = 50%. Users can replace
 this benchmark with their own (**⚙ Benchmark**).
 
 Sidebar changes take effect when you click **▶ Run**, so several settings can be
@@ -73,8 +73,8 @@ the equations in boxes.
 - **Households.** A share λ are hand-to-mouth: they own no capital, do not save
   and receive all of the cash welfare. The rest are optimizers: they own the capital
   and pay the capital tax. Everyone pays the labor and consumption taxes, but
-  hand-to-mouth households pay half the optimizers' labor-tax rate (τⁿ/2), a simple
-  progressive scheme. Utility is `ln(C + φ·Gᶜ) + θ_L·ln(1 − N)`.
+  hand-to-mouth households pay the share h of the optimizers' labor-tax rate (h·τⁿ;
+  h = 50% by default, set in item D), a simple progressive scheme when h < 100%. Utility is `ln(C + φ·Gᶜ) + θ_L·ln(1 − N)`.
 - **Production.** Cobb-Douglas in private capital, labor and public capital, which
   raises productivity when θ_G > 0.
 - **Government.** The three taxes together raise revenue equal to total spending

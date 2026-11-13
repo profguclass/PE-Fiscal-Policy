@@ -74,7 +74,8 @@ def render():
 
     The government has three taxes. The capital-tax rate is the fraction of rental income
     from machines that the government takes. The labor-tax rate is the fraction of wages it
-    takes from optimizers; hand-to-mouth households pay half that rate, a simple
+    takes from optimizers; hand-to-mouth households pay a fraction h of that rate,
+    chosen in sidebar item D (half by default), so a fraction below one is a simple
     progressive scheme. The consumption-tax rate is the fraction added on top of the price
     of everything a household buys.
 
@@ -108,7 +109,7 @@ def render():
     | $K^G_t$ | Public capital (built by public investment $I^G_t$) |
     | $\phi$ | How much households value in-kind welfare, relative to their own consumption ($0\le\phi\le1$) |
     | $\lambda$ | Share of households that are hand-to-mouth |
-    | $\tau^K_t,\ \tau^N_t,\ \tau^C_t$ | Capital-tax rate (on rental income), labor-tax rate (optimizers; hand-to-mouth pay $\tau^N_t/2$), consumption-tax rate |
+    | $\tau^K_t,\ \tau^N_t,\ \tau^C_t$ | Capital-tax rate (on rental income), labor-tax rate (optimizers; hand-to-mouth pay $h\,\tau^N_t$), consumption-tax rate |
     | $\beta=1/(1+r),\ \delta$ | Discount factor ($r$ = steady-state real interest rate), depreciation rate |
     | $\theta_N,\ \theta_K=1-\theta_N,\ \theta_G$ | Output elasticities of labor, private capital, public capital |
     | $\theta_L$ | Weight on leisure in utility |
@@ -299,8 +300,8 @@ def render():
     possible.
 
     Their budget is simple. What they spend on consumption, at one plus the consumption-tax
-    rate per unit, equals their wage times their hours, less the labor tax at half the
-    optimizers' rate, plus their share of the cash welfare. All of the island's cash
+    rate per unit, equals their wage times their hours, less the labor tax at the fraction
+    h of the optimizers' rate, plus their share of the cash welfare. All of the island's cash
     welfare goes to them, so each hand-to-mouth household receives total cash welfare
     divided by the hand-to-mouth share. They own no machines, so they pay no capital tax,
     but every good they buy carries the consumption tax. Nothing
@@ -312,12 +313,12 @@ def render():
         st.markdown("**In symbols**")
         st.latex(r"\max_{C^H_t,\,N^H_t}\ \ln\big(C^H_t + \phi\,G^C_t\big) + \theta_L \ln\big(1-N^H_t\big)")
         st.markdown(r"subject to")
-        st.latex(r"(1+\tau^C_t)\,C^H_t = \big(1-\tfrac{1}{2}\tau^N_t\big)\,w_t N^H_t + \frac{G^T_t}{\lambda}")
+        st.latex(r"(1+\tau^C_t)\,C^H_t = \big(1-h\,\tau^N_t\big)\,w_t N^H_t + \frac{G^T_t}{\lambda}")
     st.markdown(
         """
     **What the hand-to-mouth households do.** They follow the same work-versus-leisure rule
-    as the optimizers, with one change: the labor tax takes only half the optimizers'
-    rate. The leisure weight times their effective consumption, divided by their leisure,
+    as the optimizers, with one change: the labor tax takes only the fraction h of the
+    optimizers' rate. The leisure weight times their effective consumption, divided by their leisure,
     must equal their after-tax wage divided by one plus the consumption-tax rate.
 
     Putting this rule together with their budget tells us their hours directly. First add
@@ -344,15 +345,15 @@ def render():
         )
         st.latex(
             r"\mathcal{L} = \ln\big(C^H_t+\phi\,G^C_t\big) + \theta_L \ln\big(1-N^H_t\big) "
-            r"+ \mu_t\Big[\big(1-\tfrac{1}{2}\tau^N_t\big)\,w_t N^H_t + \frac{G^T_t}{\lambda} - (1+\tau^C_t)\,C^H_t\Big]"
+            r"+ \mu_t\Big[\big(1-h\,\tau^N_t\big)\,w_t N^H_t + \frac{G^T_t}{\lambda} - (1+\tau^C_t)\,C^H_t\Big]"
         )
         st.markdown(r"**Step 2. First-order conditions.** Set the derivative with respect to each choice to zero.")
         st.latex(r"\partial C^H_t:\quad \frac{1}{C^H_t+\phi\,G^C_t} = \mu_t\,(1+\tau^C_t)")
-        st.latex(r"\partial N^H_t:\quad \frac{\theta_L}{1-N^H_t} = \mu_t\,\big(1-\tfrac{1}{2}\tau^N_t\big)\,w_t")
+        st.latex(r"\partial N^H_t:\quad \frac{\theta_L}{1-N^H_t} = \mu_t\,\big(1-h\,\tau^N_t\big)\,w_t")
         st.markdown(
             r"Compare the optimizers' $\partial N^O_t$ condition: $w_t$ here is multiplied by "
-            r"$(1-\tau^N_t/2)$ instead of $(1-\tau^N_t)$, because the hand-to-mouth households' "
-            r"wages are taxed at half the rate. Write $w^H_t=(1-\tau^N_t/2)\,w_t$ for their "
+            r"$(1-h\,\tau^N_t)$ instead of $(1-\tau^N_t)$, because the hand-to-mouth households' "
+            r"wages are taxed at the fraction $h$ of the rate. Write $w^H_t=(1-h\,\tau^N_t)\,w_t$ for their "
             r"after-tax wage."
         )
         st.markdown(
@@ -410,10 +411,10 @@ def render():
     the private-capital elasticity's share of output as rent, the capital-tax rate is the
     capital-tax share of spending divided by that share of output.
 
-    The labor tax falls on everyone's wages, at the full rate for optimizers and half the
-    rate for hand-to-mouth households. The rate times the optimizers' wage bill, plus half
-    the rate times the hand-to-mouth households' wage bill, must equal the labor-tax share
-    times total spending.
+    The labor tax falls on everyone's wages, at the full rate for optimizers and the
+    fraction h of the rate for hand-to-mouth households. The rate times the optimizers'
+    wage bill, plus h times the rate times the hand-to-mouth households' wage bill, must
+    equal the labor-tax share times total spending.
 
     Both kinds of household pay the consumption tax. The consumption-tax rate times the
     island's total private consumption must equal the consumption-tax share times total
@@ -424,7 +425,7 @@ def render():
         st.markdown("**In symbols**")
         st.markdown(r"With $f^K+f^N+f^C=1$:")
         st.latex(r"\tau^K_t\,R_t K_t = f^K G_t \quad\Longleftrightarrow\quad \tau^K_t = \frac{f^K G_t}{\theta_K Y_t}, \qquad \tau^C_t\,C_t = f^C G_t")
-        st.latex(r"\tau^N_t\,(1-\lambda)\,w_t N^O_t + \tfrac{1}{2}\tau^N_t\,\lambda\,w_t N^H_t = f^N G_t")
+        st.latex(r"\tau^N_t\,(1-\lambda)\,w_t N^O_t + h\,\tau^N_t\,\lambda\,w_t N^H_t = f^N G_t")
 
     st.subheader("A.6 Market clearing and equilibrium")
     st.markdown(
@@ -553,19 +554,20 @@ def render():
     logarithmic happiness, the two kinds of household's work-versus-leisure rules add up to
     a single rule for the whole island, and a transfer from one kind to the other does not
     change that combined rule. The capital tax does not upset this, since it does not enter
-    the work-versus-leisure rules. Once there is a labor tax, which hand-to-mouth households
-    pay at only half the optimizers' rate, the two rules no longer face the same after-tax
-    wage, they no longer add up to one rule, and the result no longer holds.
+    the work-versus-leisure rules. The result also holds with a labor tax if both kinds of
+    household pay the same rate (h = 100%). But once hand-to-mouth households pay a
+    different rate (h below 100%), the two rules no longer face the same after-tax wage,
+    they no longer add up to one rule, and the result no longer holds.
     """
     )
     with st.container(border=True):
         st.markdown("**In symbols**")
-        st.markdown(r"If $\tau^N=0$ and $N^H>0$, both types $i=O,H$ satisfy")
-        st.latex(r"\theta_L\,(C^i+\phi G^C) = \frac{w}{1+\tau^C}\,(1-N^i)")
+        st.markdown(r"If $\tau^N=0$ or $h=1$, and $N^H>0$, both types $i=O,H$ satisfy")
+        st.latex(r"\theta_L\,(C^i+\phi G^C) = \frac{(1-\tau^N)\,w}{1+\tau^C}\,(1-N^i)")
         st.markdown(r"Weighting by $1-\lambda$ and $\lambda$ and adding gives one aggregate condition,")
-        st.latex(r"\theta_L\,(C+\phi G^C) = \frac{w}{1+\tau^C}\,(1-N)")
+        st.latex(r"\theta_L\,(C+\phi G^C) = \frac{(1-\tau^N)\,w}{1+\tau^C}\,(1-N)")
         st.markdown(
             r"which does not depend on how income is split between the types. With "
-            r"$\tau^N>0$ the optimizers face $(1-\tau^N)w$ and the hand-to-mouth households "
-            r"$(1-\tau^N/2)w$, and the conditions no longer aggregate."
+            r"$\tau^N>0$ and $h<1$ the optimizers face $(1-\tau^N)w$ and the hand-to-mouth "
+            r"households $(1-h\,\tau^N)w$, and the conditions no longer aggregate."
         )
