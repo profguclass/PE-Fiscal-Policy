@@ -306,8 +306,8 @@ def benchmark_dialog():
     f_IG = c1.number_input("Investment Iᴳ (%)", 0.0, 100.0, bench["f_IG"], 5.0, key=k("f_IG"))
     f_GC = c2.number_input("In-kind Gᶜ (%)", 0.0, 100.0, bench["f_GC"], 5.0, key=k("f_GC"))
     f_GT = c3.number_input("Cash Gᵀ (%)", 0.0, 100.0, bench["f_GT"], 5.0, key=k("f_GT"))
-    st.markdown("**B. Tax mix of gov't revenue (%)**")
-    st.markdown("B1. Composition")
+    st.markdown("**B. Public revenues (%)**")
+    st.markdown("B1. Tax mix of gov't revenue (%)")
     c1, c2, c3 = st.columns(3)
     f_N = c1.number_input("Labor (%)", 0.0, 100.0, bench["f_N"], 5.0, key=k("f_N"))
     f_K = c2.number_input("Capital (%)", 0.0, 100.0, bench["f_K"], 5.0, key=k("f_K"))
@@ -404,8 +404,8 @@ TAX_HELP = ("Each tax raises this share of government spending G every year. The
             "with h set below. The capital tax τᵏ falls on rental income from capital R·K, "
             "which only optimizers own. The consumption tax τᶜ falls on everyone's "
             "consumption.")
-st.sidebar.subheader("B. Tax mix of gov't revenue (%)", help=TAX_HELP)
-st.sidebar.markdown("B1. Composition")
+st.sidebar.subheader("B. Public revenues (%)", help=TAX_HELP)
+st.sidebar.markdown("B1. Tax mix of gov't revenue (%)")
 tax_c1, tax_c2, tax_c3 = st.sidebar.columns(3)
 in_N = tax_c1.number_input("Labor", 0.0, 100.0, BENCH_f_N_pct, 5.0, key=wkey("in_N"))
 in_K = tax_c2.number_input("Capital", 0.0, 100.0, BENCH_f_K_pct, 5.0, key=wkey("in_K"))
