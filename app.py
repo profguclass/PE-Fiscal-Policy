@@ -298,7 +298,7 @@ def benchmark_dialog():
              "**↺ Reset** takes the sidebar. Your benchmark lasts until you "
              "reload the page and does not affect anyone else.")
     k = lambda name: f"bench_{name}_{st.session_state['reset_version']}"
-    st.markdown("**A. Public expenditures (%)**")
+    st.markdown("**A. Public expenditures**")
     s_G_b = st.slider("A1. Total gov't spending, G/Y (%)", 10.0, 40.0, bench["s_G"],
                       1.0, key=k("s_G"))
     st.markdown("A2. Composition of G (%)")
@@ -306,7 +306,7 @@ def benchmark_dialog():
     f_IG = c1.number_input("Investment Iᴳ (%)", 0.0, 100.0, bench["f_IG"], 5.0, key=k("f_IG"))
     f_GC = c2.number_input("In-kind Gᶜ (%)", 0.0, 100.0, bench["f_GC"], 5.0, key=k("f_GC"))
     f_GT = c3.number_input("Cash Gᵀ (%)", 0.0, 100.0, bench["f_GT"], 5.0, key=k("f_GT"))
-    st.markdown("**B. Public revenues (%)**")
+    st.markdown("**B. Public revenues**")
     st.markdown("B1. Tax mix of gov't revenue (%)")
     c1, c2, c3 = st.columns(3)
     f_N = c1.number_input("Labor (%)", 0.0, 100.0, bench["f_N"], 5.0, key=k("f_N"))
@@ -372,7 +372,7 @@ if "bench" in st.session_state:
 
 
 # A. Public expenditures: A1 total G/Y and A2 its composition -----------
-st.sidebar.subheader("A. Public expenditures (%)")
+st.sidebar.subheader("A. Public expenditures")
 s_G_new_pct = st.sidebar.slider(
     "A1. Total gov't spending, G/Y (%)", 10.0, 40.0, BENCH_s_G_pct, 1.0,
     help=f"Government spending before the change in item C. The benchmark is G/Y = "
@@ -404,7 +404,7 @@ TAX_HELP = ("Each tax raises this share of government spending G every year. The
             "with h set below. The capital tax τᵏ falls on rental income from capital R·K, "
             "which only optimizers own. The consumption tax τᶜ falls on everyone's "
             "consumption.")
-st.sidebar.subheader("B. Public revenues (%)", help=TAX_HELP)
+st.sidebar.subheader("B. Public revenues", help=TAX_HELP)
 st.sidebar.markdown("B1. Tax mix of gov't revenue (%)")
 tax_c1, tax_c2, tax_c3 = st.sidebar.columns(3)
 in_N = tax_c1.number_input("Labor", 0.0, 100.0, BENCH_f_N_pct, 5.0, key=wkey("in_N"))
