@@ -185,15 +185,15 @@ def regime_transition_path(ss_from, ss_to, ss_reverted=None, permanent=True,
     G/Y, unlike the ΔG/Y-specific experiment). Financing, composition, θ_G, and r are
     always treated as permanent, immediate switches, since this model has no
     mechanism for a structural parameter to "revert." Only total government spending
-    G respects the sidebar's Duration control (item A.3).
+    G respects the sidebar's Duration control (item A3).
 
     If permanent, this linearizes around ss_to (the destination regime, already at
-    its final G/Y) with g_path=0 throughout -- G jumps to ss_to's share immediately
-    and stays. If temporary, G instead reverts to ss_from's share after
-    duration_years -- but the economy does NOT return to ss_from itself (financing/
-    composition/θ_G don't revert), so the true long-run anchor is a THIRD steady
-    state, ss_reverted (required when permanent=False): ss_to's regime at ss_from's
-    G/Y level. Mirrors exactly how run_experiment's own temporary-shock case
+    its final G/Y, A1 + A2) with g_path=0 throughout -- G jumps to ss_to's share
+    immediately and stays. If temporary, G instead falls back to item A1's share
+    after duration_years -- but the economy does NOT return to ss_from itself
+    (financing/composition/θ_G don't revert), so the true long-run anchor is a THIRD
+    steady state, ss_reverted (required when permanent=False): ss_to's regime at
+    G/Y = A1. Mirrors exactly how run_experiment's own temporary-shock case
     linearizes around ss_old (its analogous "reference/target" state) rather than
     ss_new, with g_path returning to exactly 0 (not a nonzero constant) after
     duration_years -- a nonzero forcing that never decays back to 0 breaks the
@@ -365,26 +365,30 @@ if "bench" in st.session_state:
 
 # A. Total government spending -----------------------------------------
 st.sidebar.subheader("A. Total government spending")
-_, d_box = st.sidebar.columns([1, 14])  # indent items A.1–A.3 under A
-s_G_old_pct = BENCH_s_G_pct  # the benchmark's G/Y, Section S1's reference level
+_, d_box = st.sidebar.columns([1, 14])  # indent items A1–A3 under A
 s_G_new_pct = d_box.slider(
-    "A.1 Spending now, G/Y (%)", 5.0, 40.0, BENCH_s_G_pct, 1.0,
-    help=f"The current level of government spending. The benchmark is G/Y = {BENCH_s_G_pct:.0f}%: "
-         "Sections S1-S3 compare the current settings against it; Section S3 changes "
-         "G/Y by item A.2 from this current level, and from the benchmark's.",
+    "A1 Spending now, G/Y (%)", 5.0, 40.0, BENCH_s_G_pct, 1.0,
+    help=f"Government spending before the change in item A2. The benchmark is G/Y = "
+         f"{BENCH_s_G_pct:.0f}%. The current economy that Sections S1 and S2 compare "
+         "against the benchmark has G/Y = A1 + A2. Section S3 changes G/Y by item A2 "
+         "from this level, and from the benchmark's.",
     key=wkey("s_G_new_pct"))
 # Down to -4 points: G/Y is at least 5% in both economies, so it stays positive.
 dG_pct = d_box.number_input(
-    "A.2 Change in G/Y (%p)", -4.0, 10.0, 0.0, 0.5,
-    help="Section S3 changes G/Y by this many percentage points, both from the benchmark's "
-         "level and from its current level (item A.1), holding every other setting fixed. "
-         "Positive is a rise in spending, negative a cut. Item A.3 sets how long it lasts.",
+    "A2 Change in G/Y (%p)", -4.0, 10.0, 0.0, 0.5,
+    help="A change in G/Y, in percentage points, on top of item A1: positive is a rise "
+         "in spending, negative a cut. Sections S1 and S2 use G/Y = A1 + A2 as the current "
+         "economy. Section S3 computes the multipliers of this change, both from the "
+         "benchmark's level and from A1, holding every other setting fixed. Item A3 sets "
+         "how long it lasts.",
     key=wkey("dG_pct"))
 
-# A.3 Duration of the change, alongside G/Y within the same section, since it
-# only governs how long a ΔG/Y change lasts. --------------------------------
-duration_label = d_box.radio("A.3 Duration of the change", ["Permanent", "Temporary"],
-                            horizontal=True, key=wkey("duration_label"))
+# A3 Duration of the change in item A2 (only A2 is temporary; A1 stays). ------
+duration_label = d_box.radio("A3 Duration of the change", ["Permanent", "Temporary"],
+                            horizontal=True, key=wkey("duration_label"),
+                            help="Applies only to the change in item A2. Permanent: G/Y stays "
+                                 "at A1 + A2. Temporary: G/Y is A1 + A2 for the chosen number "
+                                 "of years and then returns to A1.")
 permanent = duration_label == "Permanent"
 duration_years = 4
 if not permanent:
@@ -485,13 +489,13 @@ theta_N_v = theta_N
 delta_v = delta_pct / 100.0
 r_v = r_pct / 100.0
 theta_G_v = theta_G
-s_G_old_v = s_G_old_pct / 100.0
 s_G_new_v = s_G_new_pct / 100.0
 N_target_v = N_target_pct / 100.0
 f_IG_v, f_GC_v, f_GT_v = f_IG_pct / 100.0, f_GC_pct / 100.0, f_GT_pct / 100.0
 phi_v = phi
 lam_v = lam
-# Section S3's experiment: from the current G/Y (item A.1), changed by item A.2.
+# G/Y = A1 + A2: the current economy of Sections S1 and S2, and the end point of
+# Section S3's experiment, which starts from A1.
 s_G_up_v = s_G_new_v + dG_pct / 100.0
 
 BENCH_f_IG, BENCH_f_GC, BENCH_f_GT = BENCH_f_IG_pct / 100.0, BENCH_f_GC_pct / 100.0, BENCH_f_GT_pct / 100.0
@@ -592,7 +596,7 @@ if path_error:
         f"comparisons and long-run multipliers below are still exact and "
         f"valid**; only the transition-path charts and impact multipliers need a "
         f"stable path and are skipped. "
-        f"Try a lower total government spending (item A.1), a larger consumption-tax "
+        f"Try a lower total government spending (item A1), a larger consumption-tax "
         f"share (item C), or a higher public-investment share (item B) -- all three "
         f"push the instability threshold higher."
     )
@@ -615,17 +619,16 @@ try:
                                             theta_L_bench, BENCH_tax_mix,
                                             f_GC=BENCH_f_GC, phi=BENCH_phi, lam=BENCH_lam)
     # The same (benchmark) theta_L is used for "current settings" -- see theta_L_bench.
+    # The current economy: the sidebar's settings with G/Y = A1 + A2.
     ss_current = steady_state_for_policy(theta_N_v, delta_v, r_v, A_v, theta_G_v,
-                                          s_G_new_v, f_IG_v, f_GT_v,
+                                          s_G_up_v, f_IG_v, f_GT_v,
                                           theta_L_bench, tax_mix_v,
                                           f_GC=f_GC_v, phi=phi_v, lam=lam_v)
-    # "Reverted" state for the Cumulative Effects time series under a TEMPORARY
-    # duration: current settings' own regime (financing/composition/θ_G/r), but at
-    # the benchmark's G/Y level -- the true long-run anchor once G/Y reverts, since
-    # financing/composition/θ_G don't revert along with it (see
-    # regime_transition_path's docstring for why this matters).
+    # "Reverted" state under a TEMPORARY change in item A2: the current settings at
+    # G/Y = A1, where G/Y returns once the change ends -- the true long-run anchor,
+    # since financing/composition/θ_G don't revert (see regime_transition_path).
     ss_reverted = steady_state_for_policy(theta_N_v, delta_v, r_v, A_v, theta_G_v,
-                                           s_G_old_v, f_IG_v, f_GT_v,
+                                           s_G_new_v, f_IG_v, f_GT_v,
                                            theta_L_bench, tax_mix_v,
                                            f_GC=f_GC_v, phi=phi_v, lam=lam_v)
 except Exception as exc:  # noqa: BLE001
@@ -635,10 +638,11 @@ st.info(
     "**What this page compares.** **S1** and **S2** compare two economies: **(A) the "
     "benchmark**, a fixed reference economy (described under S1; change it with "
     "⚙ Benchmark), and **(B) the economy under the sidebar's current settings** (items "
-    "A-F). S1 compares their long-run equilibria; S2 follows the economy year by year as "
-    "it moves from (A) to (B). **S3** changes only government spending, by item A.2 "
-    "(a rise or a cut, for the time set in item A.3), in both (A) and (B), and compares "
-    "how much each variable changes per dollar of the change in spending (the multiplier)."
+    "A-F), with G/Y = A1 + A2. S1 compares their long-run equilibria; S2 follows the "
+    "economy year by year as it moves from (A) to (B). **S3** changes only government "
+    "spending, by item A2 (a rise or a cut, for the time set in item A3), in both (A) and "
+    "the current settings at A1, and compares how much each variable changes per dollar "
+    "of the change in spending (the multiplier)."
 )
 st.subheader("S1. Comparison between Old and New Equilibrium")
 st.write("Exact, closed-form solution of the model's long-run (“great ratios”) "
@@ -650,22 +654,21 @@ st.write("Exact, closed-form solution of the model's long-run (“great ratios�
          f"λ={BENCH_lam:.2f}; θ_N=0.58 and δ=10%) vs. "
          "**whatever the sidebar is currently set to**.")
 if not permanent:
-    st.info(f"**The change is temporary (item A.3).** G/Y stays at the current "
-            f"{s_G_new_pct:.0f}% for {duration_years} year(s) and then returns to the "
-            f"benchmark's {BENCH_s_G_pct:.0f}%, while the other current settings stay. So "
-            "column (B) is the equilibrium the economy ends at: the current settings with "
-            "the benchmark's G/Y. The years don't change that equilibrium, but they do "
-            "change the path to it and so the accumulated welfare rows, which add up the "
-            "same path as S2.")
+    st.info(f"**The change in item A2 is temporary (item A3).** G/Y is A1 + A2 = "
+            f"{s_G_new_pct + dG_pct:.1f}% for {duration_years} year(s) and then returns to "
+            f"A1's {s_G_new_pct:.1f}%, while the other current settings stay. So column (B) "
+            "is the equilibrium the economy ends at: the current settings with G/Y = A1. The "
+            "years don't change that equilibrium, but they do change the path to it and so "
+            "the accumulated welfare rows, which add up the same path as S2.")
 
 if benchmark_error:
     st.error(f"Could not compute the benchmark steady state: {benchmark_error}")
 else:
     bench_left_label = "(A) Benchmark's initial equilibrium"
     bench_right_label = ("(B) Current settings' long-run equilibrium" if permanent else
-                         f"(B) Current settings' long-run equilibrium, G/Y back at {BENCH_s_G_pct:.0f}%")
-    # With a temporary change (item A.3) G/Y returns to the benchmark's, so the economy
-    # settles at ss_reverted: the current settings at the benchmark's G/Y, as in S2.
+                         f"(B) Current settings' long-run equilibrium, G/Y back at A1 = {s_G_new_pct:.1f}%")
+    # With a temporary change (item A3) G/Y returns to A1, so the economy settles at
+    # ss_reverted: the current settings at G/Y = A1, as in S2.
     ss_B = ss_current if permanent else ss_reverted
     bench_pct_label = "(B/A−1) % change"
 
@@ -681,7 +684,7 @@ else:
         gains_ss = welfare_gains(out_bench, household_outcomes(ss_B, np.zeros((4, 1))),
                                  1.0 / (1.0 + r_v), theta_L_bench, phi_v, long_run=True, last_year=0)
         # Accumulated: lifetime welfare along the move from (A) to (B), years of
-        # adjustment included, permanent or temporary per item A.3 (the same path and
+        # adjustment included, permanent or temporary per item A3 (the same path and
         # sum as S2's accumulated panels).
         try:
             s1_path = regime_transition_path(ss_benchmark, ss_current, ss_reverted=ss_reverted,
@@ -734,7 +737,8 @@ else:
     # One bar for every row of the table above, in the same order.
     bench_bar_vars = bench_table["Variable"].str.strip().tolist()
     bench_pct_change = bench_table[bench_pct_label]
-    bench_bar_heights = bench_pct_change.fillna(0.0).values
+    # Rounded so floating-point noise (e.g. -3e-14% when (B) equals (A)) draws no bar.
+    bench_bar_heights = bench_pct_change.fillna(0.0).round(8).values + 0.0
     bench_bar_text = [("n/a" if pd.isna(v) else f"{v:+.2f}%") for v in bench_pct_change.values]
     fig_bench_bar = go.Figure(go.Bar(x=bench_bar_vars, y=bench_bar_heights,
                                       marker_color=["#2563eb" if v >= 0 else "#dc2626" for v in bench_bar_heights],
@@ -748,9 +752,9 @@ else:
              "economy starts with the benchmark's capital stocks and this new "
              "regime -- tax mix, composition, φ, θ_G, and household types -- is put permanently in "
              "place at year 0. **G/Y specifically respects the Duration control "
-             "(item A.3)**: Permanent means it jumps to the current G/Y and stays; "
-             f"Temporary means it reverts to the benchmark's {BENCH_s_G_pct:.0f}% share after the "
-             "chosen number of years (everything else stays at current settings). "
+             "(item A3)**: Permanent means it jumps to A1 + A2 and stays; Temporary means it "
+             f"is A1 + A2 for the chosen number of years and then returns to A1's "
+             f"{s_G_new_pct:.1f}% (everything else stays at current settings). "
              "Every chart shows **levels, in the same units as S1's table**. In each "
              "chart the dotted gray line is the benchmark level (column A) and the dashed "
              "line is the level the path settles at in the new equilibrium.")
@@ -967,14 +971,14 @@ if not benchmark_error and cumulative_path is not None:
 
 # --------------------------------------------------------------------------
 # S3. Multiplier effect of government spending in (A) the benchmark and (B) the
-# current settings: in each, G/Y changes by item A.2 and every other setting stays.
+# current settings: in each, G/Y changes by item A2 and every other setting stays.
 # (B) reuses ss_old/ss_new/path from the ΔG/Y experiment above.
 # --------------------------------------------------------------------------
 
 st.subheader("S3. Multiplier Effect of Government Spending")
 change_word = "raising" if dG_pct > 0 else "cutting"
-duration_text = "permanently" if permanent else f"for {duration_years} year(s) (item A.3)"
-st.write(f"Simulates **{change_word} G/Y by {abs(dG_pct):.1f} percentage points (item A.2), "
+duration_text = "permanently" if permanent else f"for {duration_years} year(s) (item A3)"
+st.write(f"Simulates **{change_word} G/Y by {abs(dG_pct):.1f} percentage points (item A2), "
          f"{duration_text}**, in both of S1's economies, holding everything else fixed: in "
          f"**(A) the benchmark** G/Y goes from {BENCH_s_G_pct:.1f}% to "
          f"{BENCH_s_G_pct + dG_pct:.1f}%, and in **(B) the current settings** from "
@@ -990,12 +994,12 @@ st.write(f"Simulates **{change_word} G/Y by {abs(dG_pct):.1f} percentage points 
          "keep S1's numbers and units, so rates, hours and other percentages change in "
          "percentage points per unit of G.")
 if dG_pct == 0:
-    st.info("Item A.2 is 0, so G/Y does not change and there is nothing to divide by, so no "
-            "multipliers are shown. Set A.2 above or below 0 (and click ▶ Run) to compute them.")
+    st.info("Item A2 is 0, so G/Y does not change and there is nothing to divide by, so no "
+            "multipliers are shown. Set A2 above or below 0 (and click ▶ Run) to compute them.")
 
 
 def spending_experiment(r, A, theta_G, s_G, f_IG, f_GC, f_GT, tax_mix, phi, lam):
-    """S3's ΔG/Y experiment in one economy: G/Y from s_G changed by item A.2. Returns
+    """S3's ΔG/Y experiment in one economy: G/Y from s_G changed by item A2. Returns
     (ss_old, ss_new, path); path is None when the saddle path cannot be solved."""
     kw = dict(r=r, A=A, theta_G=theta_G, f_IG=f_IG, f_GT=f_GT, f_GC=f_GC, phi=phi, lam=lam)
     try:
@@ -1087,11 +1091,11 @@ if dG_pct != 0:
     )
 if not permanent:
     st.info(
-        "**The change is temporary (item A.3).** The long-run columns compare two "
+        "**The change is temporary (item A3).** The long-run columns compare two "
         "steady states, so they show what a *permanent* change would do. With a temporary "
         f"change G/Y returns after {duration_years} year(s) and each economy ends back "
         "where it started, so its actual long-run change is zero. Only the impact columns "
-        "reflect A.3."
+        "reflect A3."
     )
 if dG_pct != 0:
     st.write(f"**Output multiplier ΔY/ΔG:** long-run {lr_A[0]:+.2f} in (A) and {lr_B[0]:+.2f} in "
@@ -1180,7 +1184,8 @@ with st.expander("ℹ️ Methodology notes"):
   20/50/30 into public investment,
   in-kind welfare and cash welfare, φ=0.10, λ=0.3; θ_N=0.58, δ=10% and 20% target
   hours) against whatever the sidebar is *currently*
-  set to, so every control (tax mix, composition, φ, θ_G, G/Y, household types)
+  set to, with G/Y = A1 + A2 (back at A1 in the long run if item A3 makes the change
+  temporary), so every control (tax mix, composition, φ, θ_G, G/Y, household types)
   shows up as a difference there -- including the tax mix alone, since the capital-,
   labor- and consumption-tax wedges distort households' margins independent of net revenue.
 - **S2 (Transition from Old to New Equilibrium)** imagines the economy starting at the benchmark's capital stocks with the
@@ -1196,8 +1201,8 @@ with st.expander("ℹ️ Methodology notes"):
   discounts with β = 1/(1+r); the accumulated value adds up years 0 to
   100 and counts the last one for every year after that.
 - **S3 (Multiplier Effect of Government Spending)** changes G/Y by the amount in
-  item A.2 (a rise or a cut, permanent or temporary per item A.3) in both of S1's
-  economies, (A) the benchmark and (B) the current settings,
+  item A2 (a rise or a cut, permanent or temporary per item A3) in (A) the benchmark
+  and in (B) the current settings at G/Y = A1,
   while every other setting stays as it is. For each of S1's variables X except
   inequality and welfare, it reports the multiplier ΔX/ΔG -- the change in X per dollar
   of the change in government spending -- long-run (from the two steady states) and on

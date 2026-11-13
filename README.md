@@ -11,7 +11,7 @@ the long run and year by year along the transition.
 
 | Sidebar item | Setting |
 |---|---|
-| A | Size of government, G/Y (A.1); a rise or cut in G/Y for S3 (A.2); whether changes in G/Y are permanent or temporary, and for how many years (A.3) |
+| A | Size of government: G/Y before the change (A1); a rise or cut in G/Y (A2), so the current economy has G/Y = A1 + A2; whether the change in A2 is permanent or temporary, and for how many years (A3) |
 | B | Composition of spending: public investment, in-kind welfare and cash welfare |
 | C | Tax mix: the shares of revenue from the capital, labor and consumption taxes |
 | D | How much households value in-kind welfare, φ |
@@ -33,7 +33,7 @@ benchmark.
 ## What the app shows
 
 S1 and S2 compare two economies: **(A) the benchmark** and **(B) the economy
-under the sidebar's current settings**. S3 changes only government spending, in
+under the sidebar's current settings**, with G/Y = A1 + A2. S3 changes only government spending, in
 both, and compares the multipliers.
 
 - **S1. Comparison between Old and New Equilibrium:** a table of the two
@@ -47,16 +47,17 @@ both, and compares the multipliers.
   and disposable income, income and consumption ratios, the hours gap) and
   welfare. Each welfare index (A = 100) has two values: the **new equilibrium**
   and the value **accumulated** over the move from the old to the new
-  equilibrium. A bar chart shows the % changes. If the change in G/Y is
-  temporary (A.3), (B) is the equilibrium the economy ends at, with G/Y back at
-  the benchmark's level.
+  equilibrium. A bar chart shows the % changes. If the change in A2 is
+  temporary (A3), (B) is the equilibrium the economy ends at, with G/Y back at
+  A1.
 - **S2. Transition from Old to New Equilibrium:** the year-by-year path from
   (A) to (B), with one tab per S1 category and every chart in S1's units. In
   each chart a dotted line marks the benchmark level and a dashed line the new
   equilibrium. The Welfare tab shows each year's welfare and the welfare
   accumulated up to that year.
-- **S3. Multiplier Effect of Government Spending:** changes G/Y by item A.2
-  (a rise or a cut, permanent or temporary per A.3) in both (A) and (B),
+- **S3. Multiplier Effect of Government Spending:** changes G/Y by item A2
+  (a rise or a cut, permanent or temporary per A3) in both (A) and the current
+  settings at G/Y = A1,
   holding everything else fixed. For S1's variables 1–37, it reports the
   multipliers ΔX/ΔG, the change in X per dollar of the change in spending,
   long-run and on impact (year 0): (C) and (E) in the benchmark, (D) and (F)
