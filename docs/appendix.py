@@ -386,7 +386,7 @@ def render():
     st.markdown(
         """
     **What the government does.** The government sets its total spending as a share of
-    output (sidebar item D) and divides it into its three parts (item E). Its total
+    output (sidebar item A) and divides it into its three parts (item B). Its total
     spending each year is exactly public investment plus in-kind welfare plus cash welfare.
 
     Public investment builds public capital the same way private investment builds
@@ -400,7 +400,7 @@ def render():
     st.markdown(
         """
     **How the government pays.** The government cannot borrow, so every year the three
-    taxes together must pay for all of its spending. Sidebar item A fixes the share of
+    taxes together must pay for all of its spending. Sidebar item C fixes the share of
     spending that each tax pays for, and the three shares add up to one. The tax rates then
     adjust each year so that each tax raises exactly its share.
 

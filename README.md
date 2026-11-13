@@ -11,12 +11,15 @@ the long run and year by year along the transition.
 
 | Sidebar item | Setting |
 |---|---|
-| A | Tax mix: the shares of revenue from the capital, labor and consumption taxes |
-| B | Public-capital productivity, θ_G |
-| C | How much households value in-kind welfare, φ |
-| D | Size of government, G/Y (D.1); a rise or cut in G/Y for S3 (D.2); whether changes in G/Y are permanent or temporary, and for how many years (D.3) |
-| E | Composition of spending: public investment, in-kind welfare and cash welfare |
-| F | Share of hand-to-mouth households, λ |
+| A | Size of government, G/Y (A.1); a rise or cut in G/Y for S3 (A.2); whether changes in G/Y are permanent or temporary, and for how many years (A.3) |
+| B | Composition of spending: public investment, in-kind welfare and cash welfare |
+| C | Tax mix: the shares of revenue from the capital, labor and consumption taxes |
+| D | How much households value in-kind welfare, φ |
+| E | Share of hand-to-mouth households, λ |
+| F | Public-capital productivity, θ_G |
+
+Items A–C are fiscal policy. Items D–F are exogenous parameters, features of the
+economy rather than policy choices, grouped in their own box in the sidebar.
 
 The benchmark economy raises revenue 30% from the capital tax, 40% from the labor
 tax and 30% from the consumption tax, with G/Y = 20% split 20/50/30 across public investment, in-kind
@@ -45,15 +48,15 @@ both, and compares the multipliers.
   welfare. Each welfare index (A = 100) has two values: the **new equilibrium**
   and the value **accumulated** over the move from the old to the new
   equilibrium. A bar chart shows the % changes. If the change in G/Y is
-  temporary (D.3), (B) is the equilibrium the economy ends at, with G/Y back at
+  temporary (A.3), (B) is the equilibrium the economy ends at, with G/Y back at
   the benchmark's level.
 - **S2. Transition from Old to New Equilibrium:** the year-by-year path from
   (A) to (B), with one tab per S1 category and every chart in S1's units. In
   each chart a dotted line marks the benchmark level and a dashed line the new
   equilibrium. The Welfare tab shows each year's welfare and the welfare
   accumulated up to that year.
-- **S3. Multiplier Effect of Government Spending:** changes G/Y by item D.2
-  (a rise or a cut, permanent or temporary per D.3) in both (A) and (B),
+- **S3. Multiplier Effect of Government Spending:** changes G/Y by item A.2
+  (a rise or a cut, permanent or temporary per A.3) in both (A) and (B),
   holding everything else fixed. For S1's variables 1–37, it reports the
   multipliers ΔX/ΔG, the change in X per dollar of the change in spending,
   long-run and on impact (year 0): (C) and (E) in the benchmark, (D) and (F)
