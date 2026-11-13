@@ -72,11 +72,11 @@ def render():
     A second number between zero and one, the hand-to-mouth share, tells what fraction of
     the population is hand-to-mouth. The rest, one minus that share, are optimizers.
 
-    The government has three taxes. The capital-tax rate is the fraction of rental income
-    from machines that the government takes. The labor-tax rate is the fraction of wages it
-    takes from optimizers; hand-to-mouth households pay a fraction h of that rate,
-    chosen in sidebar item D (half by default), so a fraction below one is a simple
-    progressive scheme. The consumption-tax rate is the fraction added on top of the price
+    The government has three taxes. The labor-tax rate is the fraction of wages it takes
+    from optimizers; hand-to-mouth households pay a fraction h of that rate, chosen in
+    sidebar item B2 (half by default), so a fraction below one is a simple progressive
+    scheme. The capital-tax rate is the fraction of rental income from machines that the
+    government takes. The consumption-tax rate is the fraction added on top of the price
     of everything a household buys.
 
     Optimizers care less about the future than the present. The discount factor tells how
@@ -109,7 +109,7 @@ def render():
     | $K^G_t$ | Public capital (built by public investment $I^G_t$) |
     | $\phi$ | How much households value in-kind welfare, relative to their own consumption ($0\le\phi\le1$) |
     | $\lambda$ | Share of households that are hand-to-mouth |
-    | $\tau^K_t,\ \tau^N_t,\ \tau^C_t$ | Capital-tax rate (on rental income), labor-tax rate (optimizers; hand-to-mouth pay $h\,\tau^N_t$), consumption-tax rate |
+    | $\tau^N_t,\ \tau^K_t,\ \tau^C_t$ | Labor-tax rate (optimizers; hand-to-mouth pay $h\,\tau^N_t$), capital-tax rate (on rental income), consumption-tax rate |
     | $\beta=1/(1+r),\ \delta$ | Discount factor ($r$ = steady-state real interest rate), depreciation rate |
     | $\theta_N,\ \theta_K=1-\theta_N,\ \theta_G$ | Output elasticities of labor, private capital, public capital |
     | $\theta_L$ | Weight on leisure in utility |
@@ -387,8 +387,9 @@ def render():
     st.markdown(
         """
     **What the government does.** The government sets its total spending as a share of
-    output (sidebar item A) and divides it into its three parts (item B). Its total
-    spending each year is exactly public investment plus in-kind welfare plus cash welfare.
+    output (sidebar item A1) and divides it into its three parts (item A2); item C changes
+    that share, permanently or for a few years. Its total spending each year is exactly
+    public investment plus in-kind welfare plus cash welfare.
 
     Public investment builds public capital the same way private investment builds
     machines. Next year's public capital equals this year's public capital, minus the
@@ -401,20 +402,23 @@ def render():
     st.markdown(
         """
     **How the government pays.** The government cannot borrow, so every year the three
-    taxes together must pay for all of its spending. Sidebar item D fixes the share of
-    spending that each tax pays for, and the three shares add up to one. The tax rates then
-    adjust each year so that each tax raises exactly its share.
+    taxes together must pay for all of its spending. Sidebar item B1 fixes the share of
+    spending that each tax pays for, in the order labor, capital, consumption, and the
+    three shares add up to one. The tax rates then adjust each year so that each tax raises
+    exactly its share. Item B2 sets h, the hand-to-mouth households' labor-tax rate as a
+    fraction of the optimizers'.
+
+    The labor tax falls on everyone's wages, at the full rate for optimizers and the
+    fraction h of the rate for hand-to-mouth households. The rate times the optimizers'
+    wage bill, plus h times the rate times the hand-to-mouth households' wage bill, must
+    equal the labor-tax share times total spending. The lower h is, the higher the
+    optimizers' rate must be to raise the same revenue.
 
     The capital tax falls on rental income, and only the optimizers own machines. The
     capital-tax rate times the island's total rental income, the rental rate times all the
     machines, must equal the capital-tax share times total spending. Since the firms pay
     the private-capital elasticity's share of output as rent, the capital-tax rate is the
     capital-tax share of spending divided by that share of output.
-
-    The labor tax falls on everyone's wages, at the full rate for optimizers and the
-    fraction h of the rate for hand-to-mouth households. The rate times the optimizers'
-    wage bill, plus h times the rate times the hand-to-mouth households' wage bill, must
-    equal the labor-tax share times total spending.
 
     Both kinds of household pay the consumption tax. The consumption-tax rate times the
     island's total private consumption must equal the consumption-tax share times total
@@ -423,9 +427,9 @@ def render():
     )
     with st.container(border=True):
         st.markdown("**In symbols**")
-        st.markdown(r"With $f^K+f^N+f^C=1$:")
-        st.latex(r"\tau^K_t\,R_t K_t = f^K G_t \quad\Longleftrightarrow\quad \tau^K_t = \frac{f^K G_t}{\theta_K Y_t}, \qquad \tau^C_t\,C_t = f^C G_t")
+        st.markdown(r"With $f^N+f^K+f^C=1$ (item B1) and $0\le h\le1$ (item B2):")
         st.latex(r"\tau^N_t\,(1-\lambda)\,w_t N^O_t + h\,\tau^N_t\,\lambda\,w_t N^H_t = f^N G_t")
+        st.latex(r"\tau^K_t\,R_t K_t = f^K G_t \quad\Longleftrightarrow\quad \tau^K_t = \frac{f^K G_t}{\theta_K Y_t}, \qquad \tau^C_t\,C_t = f^C G_t")
 
     st.subheader("A.6 Market clearing and equilibrium")
     st.markdown(
@@ -473,7 +477,7 @@ def render():
         st.markdown("**In symbols**")
         st.markdown(
             r"An equilibrium is a sequence $\{w_t, R_t, C^O_t, C^H_t, N^O_t, N^H_t, I^O_t, "
-            r"K^O_{t+1}, K^G_{t+1}, \tau^K_t, \tau^N_t, \tau^C_t\}_{t\ge0}$ satisfying the "
+            r"K^O_{t+1}, K^G_{t+1}, \tau^N_t, \tau^K_t, \tau^C_t\}_{t\ge0}$ satisfying the "
             r"conditions of A.2–A.5, the aggregation identities, and the goods-market "
             r"condition, for every $t$."
         )
@@ -542,20 +546,20 @@ def render():
     with st.container(border=True):
         st.markdown("**In symbols**")
         st.markdown(
-            r"Special case: $\lambda=0$; $f^K=1$, $f^N=1$ or $f^C=1$; spending on $G^C$ "
+            r"Special case: $\lambda=0$; $f^N=1$, $f^K=1$ or $f^C=1$; spending on $G^C$ "
             r"with $\phi=0$, or on $I^G$ with $\theta_G=0$."
         )
     st.markdown(
         """
     **One result to explore.** Suppose there is no labor tax, so the government uses only
-    the capital and consumption taxes. Then shifting cash welfare toward the hand-to-mouth
+    the capital and consumption taxes (a labor share of zero in item B1). Then shifting cash welfare toward the hand-to-mouth
     households changes *who* does the island's work, but not *total* long-run output, as
     long as the hand-to-mouth households still work some hours. The reason is that, with
     logarithmic happiness, the two kinds of household's work-versus-leisure rules add up to
     a single rule for the whole island, and a transfer from one kind to the other does not
     change that combined rule. The capital tax does not upset this, since it does not enter
     the work-versus-leisure rules. The result also holds with a labor tax if both kinds of
-    household pay the same rate (h = 100%). But once hand-to-mouth households pay a
+    household pay the same rate (h = 100% in item B2). But once hand-to-mouth households pay a
     different rate (h below 100%), the two rules no longer face the same after-tax wage,
     they no longer add up to one rule, and the result no longer holds.
     """

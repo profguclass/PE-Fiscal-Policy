@@ -83,10 +83,10 @@ def _supply_side_impl(theta_N: float, delta: float, r: float, A: float, tau_k: f
     tax_factor = 1.0 - tau_k
     if tax_factor <= 0:
         raise ValueError("Invalid parameters: the capital-tax rate must be below 100%; "
-                         "lower the capital tax's share (item D) or G/Y (item A).")
+                         "lower the capital tax's share (item B) or G/Y (item A1).")
     if theta_G > 0 and s_IG <= 0:
         raise ValueError("With productive public capital (θ_G > 0), firms need public capital "
-                         "to produce: set public investment above 0% (item B), or set θ_G = 0 (item G).")
+                         "to produce: set public investment above 0% (item A2), or set θ_G = 0 (item F).")
 
     kappa = ((tax_factor * theta_K * A) / (r + delta)) ** (1.0 / (1.0 - theta_K))
     alpha = A * kappa ** theta_K  # will be rescaled by KG^theta_G below
@@ -191,7 +191,7 @@ def calibrate_theta_L(theta_N: float, delta: float, r: float, A: float, theta_G:
     tau_n = mix[1] * s_G / theta_N          # labor tax raises f_N*G from w*N = theta_N*Y
     if tau_n >= 1:
         raise ValueError("Implied labor-tax rate is 100% or more; lower the labor tax's "
-                         "share (item D) or G/Y (item A).")
+                         "share (item B) or G/Y (item A1).")
     N = N_target
     supply = _supply_side_impl(theta_N, delta, r, A, tau_k, theta_G, s_IG, N)
     s_C = 1.0 - supply["s_I"] - s_IG - s_GC
@@ -222,7 +222,7 @@ def steady_state(theta_N: float, delta: float, r: float, A: float, theta_G: floa
     tau_n = mix[1] * s_G / theta_N          # labor tax raises f_N*G from w*N = theta_N*Y
     if tau_n >= 1:
         raise ValueError("Implied labor-tax rate is 100% or more; lower the labor tax's "
-                         "share (item D) or G/Y (item A).")
+                         "share (item B) or G/Y (item A1).")
     # Outer fixed point on N: when theta_G>0 and s_IG>0, the supply side (kappa,
     # alpha, KG) itself depends on N (see _supply_side_impl), while N in turn
     # depends on the supply side's implied consumption share s_C. When theta_G=0
@@ -335,7 +335,7 @@ def _tank_solve(theta_N, delta, r, A, theta_G, s_IG, s_GC, s_GT, tax_mix,
     for _ in range(500):
         if tau_n >= 1:
             raise ValueError("Implied labor-tax rate is 100% or more; lower the labor tax's "
-                             "share (item D) or G/Y (item A).")
+                             "share (item B) or G/Y (item A1).")
         lo, hi = 1e-9, 1.0 - 1e-9
         for _ in range(100):
             mid = 0.5 * (lo + hi)

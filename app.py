@@ -188,12 +188,12 @@ def regime_transition_path(ss_from, ss_to, ss_reverted=None, permanent=True,
     G respects the sidebar's Duration control (item C2).
 
     If permanent, this linearizes around ss_to (the destination regime, already at
-    its final G/Y, A + C1) with u_path=0 throughout -- G jumps to ss_to's share
-    immediately and stays. If temporary, G instead falls back to item A's share
+    its final G/Y, A1 + C1) with u_path=0 throughout -- G jumps to ss_to's share
+    immediately and stays. If temporary, G instead falls back to item A1's share
     after duration_years -- but the economy does NOT return to ss_from itself
     (financing/composition/θ_G don't revert), so the true long-run anchor is a THIRD
     steady state, ss_reverted (required when permanent=False): ss_to's regime at
-    G/Y = A. Mirrors exactly how run_experiment's own temporary-shock case
+    G/Y = A1. Mirrors exactly how run_experiment's own temporary-shock case
     linearizes around ss_old (its analogous "reference/target" state) rather than
     ss_new, with g_path returning to exactly 0 (not a nonzero constant) after
     duration_years -- a nonzero forcing that never decays back to 0 breaks the
@@ -298,33 +298,35 @@ def benchmark_dialog():
              "**↺ Reset** takes the sidebar. Your benchmark lasts until you "
              "reload the page and does not affect anyone else.")
     k = lambda name: f"bench_{name}_{st.session_state['reset_version']}"
-    s_G_b = st.slider("A. Total gov't spending, G/Y (%)", 10.0, 40.0, bench["s_G"],
+    st.markdown("**A. Public expenditures (%)**")
+    s_G_b = st.slider("A1. Total gov't spending, G/Y (%)", 10.0, 40.0, bench["s_G"],
                       1.0, key=k("s_G"))
-    st.markdown("**B. Composition of G (%)**")
+    st.markdown("A2. Composition of G (%)")
     c1, c2, c3 = st.columns(3)
     f_IG = c1.number_input("Investment Iᴳ (%)", 0.0, 100.0, bench["f_IG"], 5.0, key=k("f_IG"))
     f_GC = c2.number_input("In-kind Gᶜ (%)", 0.0, 100.0, bench["f_GC"], 5.0, key=k("f_GC"))
     f_GT = c3.number_input("Cash Gᵀ (%)", 0.0, 100.0, bench["f_GT"], 5.0, key=k("f_GT"))
-    st.markdown("**D. Tax mix of gov't revenue (%)**")
+    st.markdown("**B. Tax mix of gov't revenue (%)**")
+    st.markdown("B1. Composition")
     c1, c2, c3 = st.columns(3)
     f_N = c1.number_input("Labor (%)", 0.0, 100.0, bench["f_N"], 5.0, key=k("f_N"))
     f_K = c2.number_input("Capital (%)", 0.0, 100.0, bench["f_K"], 5.0, key=k("f_K"))
     f_C = c3.number_input("Consumption (%)", 0.0, 100.0, bench["f_C"], 5.0, key=k("f_C"))
-    htm_b = st.number_input("Hand-to-mouth labor-tax rate, h (% of optimizers' τⁿ)", 0.0, 100.0,
+    htm_b = st.number_input("B2. Hand-to-mouth labor-tax rate, h (% of optimizers' τⁿ)", 0.0, 100.0,
                             bench["htm"], 5.0, key=k("htm"))
     with st.container(border=True):
         st.markdown("**Exogenous parameters**")
-        phi_b = st.slider("E. Value of Gᶜ to households, φ", 0.0, 1.0, bench["phi"], 0.05,
+        phi_b = st.slider("D. Value of Gᶜ to households, φ", 0.0, 1.0, bench["phi"], 0.05,
                           key=k("phi"))
-        lam_b = st.slider("F. Hand-to-mouth share of households, λ", 0.0, 0.9, bench["lam"],
+        lam_b = st.slider("E. Hand-to-mouth share of households, λ", 0.0, 0.9, bench["lam"],
                           0.05, key=k("lam"))
-        theta_G_b = st.slider("G. Public-capital productivity, θ_G", 0.00, 0.20,
+        theta_G_b = st.slider("F. Public-capital productivity, θ_G", 0.00, 0.20,
                               bench["theta_G"], 0.01, key=k("theta_G"))
     tax_sum, comp_sum = f_K + f_N + f_C, f_IG + f_GC + f_GT
     b1, b2 = st.columns(2)
     if b1.button("Apply", type="primary", use_container_width=True):
         if tax_sum <= 0 or comp_sum <= 0:
-            st.error("Each group of shares (B and D) needs at least one positive share.")
+            st.error("Each group of shares (A2 and B) needs at least one positive share.")
             return
         # Shares that don't add up to 100% are rescaled, as in the sidebar.
         st.session_state["bench"] = dict(
@@ -369,17 +371,18 @@ if "bench" in st.session_state:
     st.sidebar.caption("Using your own benchmark economy.")
 
 
-# A. Total government spending -----------------------------------------
+# A. Public expenditures: A1 total G/Y and A2 its composition -----------
+st.sidebar.subheader("A. Public expenditures (%)")
 s_G_new_pct = st.sidebar.slider(
-    "**A. Total gov't spending, G/Y (%)**", 10.0, 40.0, BENCH_s_G_pct, 1.0,
+    "A1. Total gov't spending, G/Y (%)", 10.0, 40.0, BENCH_s_G_pct, 1.0,
     help=f"Government spending before the change in item C. The benchmark is G/Y = "
          f"{BENCH_s_G_pct:.0f}%. The current economy that Sections S1 and S2 compare "
-         "against the benchmark has G/Y = A + C1. Section S3 changes G/Y by item C "
+         "against the benchmark has G/Y = A1 + C1. Section S3 changes G/Y by item C "
          "from this level, and from the benchmark's.",
     key=wkey("s_G_new_pct"))
 
-# B. Composition of G ------------------------------------------------------
-st.sidebar.subheader("B. Composition of G (%)")
+# A2. Composition of G -----------------------------------------------------
+st.sidebar.markdown("A2. Composition of G (%)")
 comp_c1, comp_c2, comp_c3 = st.sidebar.columns(3)
 in_IG = comp_c1.number_input("Invest. Iᴳ", 0.0, 100.0, BENCH_f_IG_pct, 5.0, key=wkey("in_IG"))
 in_GC = comp_c2.number_input("In-kind Gᶜ", 0.0, 100.0, BENCH_f_GC_pct, 5.0, key=wkey("in_GC"))
@@ -395,24 +398,54 @@ f_IG_pct = 100.0 * in_IG / comp_total
 f_GC_pct = 100.0 * in_GC / comp_total
 f_GT_pct = 100.0 * in_GT / comp_total
 
+# B. Tax mix (financing rule) -----------------------------------------------------
+TAX_HELP = ("Each tax raises this share of government spending G every year. The labor "
+            "tax falls on wages: optimizers pay τⁿ and hand-to-mouth households τⁿᴴ = h·τⁿ, "
+            "with h set below. The capital tax τᵏ falls on rental income from capital R·K, "
+            "which only optimizers own. The consumption tax τᶜ falls on everyone's "
+            "consumption.")
+st.sidebar.subheader("B. Tax mix of gov't revenue (%)", help=TAX_HELP)
+st.sidebar.markdown("B1. Composition")
+tax_c1, tax_c2, tax_c3 = st.sidebar.columns(3)
+in_N = tax_c1.number_input("Labor", 0.0, 100.0, BENCH_f_N_pct, 5.0, key=wkey("in_N"))
+in_K = tax_c2.number_input("Capital", 0.0, 100.0, BENCH_f_K_pct, 5.0, key=wkey("in_K"))
+in_C = tax_c3.number_input("Consumption", 0.0, 100.0, BENCH_f_C_pct, 5.0, key=wkey("in_C"))
+tax_total = in_K + in_N + in_C
+if tax_total <= 0:
+    st.sidebar.error("At least one share must be positive; using the benchmark's shares.")
+    in_K, in_N, in_C = BENCH_f_K_pct, BENCH_f_N_pct, BENCH_f_C_pct
+    tax_total = in_K + in_N + in_C
+elif abs(tax_total - 100.0) > 1e-9:
+    st.sidebar.warning(f"The shares add up to {tax_total:.0f}%, not 100%, so they are "
+                        f"rescaled proportionally.")
+tax_mix_v = (in_K / tax_total, in_N / tax_total, in_C / tax_total)
+htm_pct = st.sidebar.number_input(
+    "B2. Hand-to-mouth labor-tax rate, h (% of optimizers' τⁿ)", 0.0, 100.0, BENCH_htm_pct, 5.0,
+    help="Hand-to-mouth households' labor-tax rate as a percentage of the optimizers' rate: "
+         "they pay τⁿᴴ = h·τⁿ on their wages. 50% means half the optimizers' rate; 100% means "
+         "the same rate; 0% exempts them. Their only income is wages, so this is their whole "
+         "income tax. A lower h makes the labor tax more progressive, but the optimizers' "
+         "rate τⁿ must then rise to raise the same revenue.",
+    key=wkey("htm_pct"))
+
 # C. Change in G/Y ------------------------------------------------------------
 st.sidebar.subheader("C. Change in G/Y")
-# C1. Down to -5 points: G/Y = A + C1 is at least 5%, so it stays positive.
+# C1. Down to -5 points: G/Y = A1 + C1 is at least 5%, so it stays positive.
 dG_pct = st.sidebar.number_input(
     "C1 Change by %p", -5.0, 5.0, 0.0, 0.5,
-    help="A change in G/Y, in percentage points, on top of item A: positive is a rise "
-         "in spending, negative a cut. Sections S1 and S2 use G/Y = A + C1 as the current "
+    help="A change in G/Y, in percentage points, on top of item A1: positive is a rise "
+         "in spending, negative a cut. Sections S1 and S2 use G/Y = A1 + C1 as the current "
          "economy. Section S3 computes the multipliers of this change, both from the "
-         "benchmark's level and from A, holding every other setting fixed. Item C2 sets "
+         "benchmark's level and from A1, holding every other setting fixed. Item C2 sets "
          "how long it lasts.",
     key=wkey("dG_pct"))
 
-# C2 Duration of the change in item C (only the change is temporary; A stays). --
+# C2 Duration of the change in item C (only the change is temporary; A1 stays). --
 duration_label = st.sidebar.radio("C2 Duration of the change", ["Permanent", "Temporary"],
                             horizontal=True, key=wkey("duration_label"),
                             help="Applies only to the change in item C1. Permanent: G/Y stays "
-                                 "at A + C1. Temporary: G/Y is A + C1 for the chosen number "
-                                 "of years and then returns to A.")
+                                 "at A1 + C1. Temporary: G/Y is A1 + C1 for the chosen number "
+                                 "of years and then returns to A1.")
 permanent = duration_label == "Permanent"
 duration_years = 4
 if not permanent:
@@ -420,12 +453,12 @@ if not permanent:
 
 
 # C3 Composition of the change, in percentage points of output. Left at zero, the
-# change is split like the composition in item B.
+# change is split like the composition in item A2.
 st.sidebar.markdown("C3 Composition of the change (%p)", help=(
     "How the change in item C1 splits across the three parts of G, in percentage points "
     "of output: e.g. a 1%p rise split 0.3, 0.5 and 0.2. If these don't add up to C1 they "
     "are rescaled proportionally; left at 0, the change is split like the composition in "
-    "item B."))
+    "item A2."))
 dchg_c1, dchg_c2, dchg_c3 = st.sidebar.columns(3)
 in_dIG = dchg_c1.number_input("Invest. Iᴳ", -5.0, 5.0, 0.0, 0.1, key=wkey("in_dIG"))
 in_dGC = dchg_c2.number_input("In-kind Gᶜ", -5.0, 5.0, 0.0, 0.1, key=wkey("in_dGC"))
@@ -443,68 +476,39 @@ else:
                            "is rescaled proportionally.")
     dX_pct = tuple(dG_pct * x / dchg_total for x in (in_dIG, in_dGC, in_dGT))
 
-# D. Tax mix (financing rule) -----------------------------------------------------
-TAX_HELP = ("Each tax raises this share of government spending G every year. The labor "
-            "tax falls on wages: optimizers pay τⁿ and hand-to-mouth households τⁿᴴ = h·τⁿ, "
-            "with h set below. The capital tax τᵏ falls on rental income from capital R·K, "
-            "which only optimizers own. The consumption tax τᶜ falls on everyone's "
-            "consumption.")
-st.sidebar.subheader("D. Tax mix of gov't revenue (%)", help=TAX_HELP)
-tax_c1, tax_c2, tax_c3 = st.sidebar.columns(3)
-in_N = tax_c1.number_input("Labor", 0.0, 100.0, BENCH_f_N_pct, 5.0, key=wkey("in_N"))
-in_K = tax_c2.number_input("Capital", 0.0, 100.0, BENCH_f_K_pct, 5.0, key=wkey("in_K"))
-in_C = tax_c3.number_input("Consumption", 0.0, 100.0, BENCH_f_C_pct, 5.0, key=wkey("in_C"))
-tax_total = in_K + in_N + in_C
-if tax_total <= 0:
-    st.sidebar.error("At least one share must be positive; using the benchmark's shares.")
-    in_K, in_N, in_C = BENCH_f_K_pct, BENCH_f_N_pct, BENCH_f_C_pct
-    tax_total = in_K + in_N + in_C
-elif abs(tax_total - 100.0) > 1e-9:
-    st.sidebar.warning(f"The shares add up to {tax_total:.0f}%, not 100%, so they are "
-                        f"rescaled proportionally.")
-tax_mix_v = (in_K / tax_total, in_N / tax_total, in_C / tax_total)
-htm_pct = st.sidebar.number_input(
-    "Hand-to-mouth labor-tax rate, h (% of optimizers' τⁿ)", 0.0, 100.0, BENCH_htm_pct, 5.0,
-    help="Hand-to-mouth households' labor-tax rate as a percentage of the optimizers' rate: "
-         "they pay τⁿᴴ = h·τⁿ on their wages. 50% means half the optimizers' rate; 100% means "
-         "the same rate; 0% exempts them. Their only income is wages, so this is their whole "
-         "income tax. A lower h makes the labor tax more progressive, but the optimizers' "
-         "rate τⁿ must then rise to raise the same revenue.",
-    key=wkey("htm_pct"))
-
-# Exogenous parameters (items E-G): features of the economy rather than policy choices,
+# Exogenous parameters (items D-F): features of the economy rather than policy choices,
 # grouped in their own box. -------------------------------------------------
 exo_box = st.sidebar.container(border=True)
 exo_box.markdown("**Exogenous parameters**")
 
-# E. Value of in-kind welfare to households -----------------------------------
+# D. Value of in-kind welfare to households -----------------------------------
 phi = exo_box.slider(
-    "**E. Value of in-kind welfare Gᶜ, φ**", 0.0, 1.0, BENCH_phi, 0.05,
+    "**D. Value of in-kind welfare Gᶜ, φ**", 0.0, 1.0, BENCH_phi, 0.05,
     help="Utility is ln(C + φ·Gᶜ) + θ_L·ln(1−N). φ=0: Gᶜ is a pure drain. "
          "φ=1: Gᶜ is a perfect substitute for private consumption, "
          "so it crowds out C one-for-one.",
     key=wkey("phi"),
 )
 
-# F. Household types ----------------------------------------------------------
+# E. Household types ----------------------------------------------------------
 lam = exo_box.slider(
-    "**F. Hand-to-mouth share, λ**", 0.0, 0.9, BENCH_lam, 0.05,
+    "**E. Hand-to-mouth share, λ**", 0.0, 0.9, BENCH_lam, 0.05,
     help="Hand-to-mouth (non-Ricardian) working families own no capital, spend all their "
          "income each period, and receive all cash welfare Gᵀ. They pay the labor tax "
-         "at h times the optimizers' rate, τⁿᴴ = h·τⁿ (item D), and the consumption tax. Optimizers own "
+         "at h times the optimizers' rate, τⁿᴴ = h·τⁿ (item B), and the consumption tax. Optimizers own "
          "the capital, pay all three taxes, and receive no cash welfare. Both types "
          "benefit from Gᶜ. λ=0 is a single representative household.",
     key=wkey("lam"),
 )
 
-# G. theta_G -----------------------------------------------------------------
+# F. theta_G -----------------------------------------------------------------
 theta_G = exo_box.slider(
-    "**G. Public-capital productivity, θ_G**", 0.00, 0.20, BENCH_theta_G, 0.01,
+    "**F. Public-capital productivity, θ_G**", 0.00, 0.20, BENCH_theta_G, 0.01,
     help="Y = K^θK·(Kᴳ/K̄ᴳ)^θG·N^θN, with public capital measured relative to a fixed "
          "reference K̄ᴳ of about half the benchmark's public capital, so a higher θG makes "
          "public capital more productive and raises output. θG=0 means public investment "
          "is a pure resource cost with no productivity effect. With θG>0, public "
-         "investment (item B) must be above 0%.",
+         "investment (item A2) must be above 0%.",
     key=wkey("theta_G"),
 )
 
@@ -537,8 +541,8 @@ phi_v = phi
 lam_v = lam
 htm_v = htm_pct / 100.0
 BENCH_htm = BENCH_htm_pct / 100.0
-# G/Y = A + C1: the current economy of Sections S1 and S2, and the end point of
-# Section S3's experiment, which starts from A.
+# G/Y = A1 + C1: the current economy of Sections S1 and S2, and the end point of
+# Section S3's experiment, which starts from A1.
 s_G_up_v = s_G_new_v + dG_pct / 100.0
 
 
@@ -609,8 +613,8 @@ FAILURE_ECONOMICS = [
      "stock would wear away to zero, and with it output and the tax base itself: the "
      "tax destroys what it taxes, so no long-run equilibrium exists. Long before 100%, "
      "a high τᵏ already shrinks the capital stock sharply.",
-     "Lower the capital tax's share (item D) and move it to the labor or consumption "
-     "tax, or lower G/Y (item A + C1)."),
+     "Lower the capital tax's share (item B) and move it to the labor or consumption "
+     "tax, or lower G/Y (item A1 + C1)."),
     ("labor-tax rate",
      "The labor tax must raise its share of G from wages, and the wage bill is only "
      "θ_N = 58% of output (hand-to-mouth households pay only the share h of the rate, "
@@ -619,16 +623,16 @@ FAILURE_ECONOMICS = [
      "not work at all; without work there is no output and no wages to tax. A tax "
      "that takes all of the reward for working cannot raise any revenue, so no "
      "equilibrium exists. This is the far side of the Laffer curve.",
-     "Lower the labor tax's share (item D) and move it to the capital or consumption "
-     "tax, raise the hand-to-mouth rate h (item D), or lower G/Y (item A + C1)."),
+     "Lower the labor tax's share (item B) and move it to the capital or consumption "
+     "tax, raise the hand-to-mouth rate h (item B), or lower G/Y (item A1 + C1)."),
     ("firms need public capital",
      "Production is Y = A·K^θK·(Kᴳ)^θG·N^θN. With θ_G > 0, public capital Kᴳ is an "
      "essential input, as in any Cobb-Douglas technology: with no Kᴳ at all, output is "
      "zero however much private capital and labor there are. Public capital wears out "
      "at the rate δ every year, so without public investment it shrinks to zero in the "
      "long run, and so does output.",
-     "Give public investment a positive share (item B, or keep item C3 from cutting it "
-     "to zero), or set θ_G = 0 (item G) so that public capital is not productive."),
+     "Give public investment a positive share (item A2, or keep item C3 from cutting it "
+     "to zero), or set θ_G = 0 (item F) so that public capital is not productive."),
     ("consumption share <= 0",
      "Output has four uses: Y = C + I + Iᴳ + Gᶜ. In the long run private investment I "
      "must replace the capital that wears out, I = δ·K, and the capital stock is pinned "
@@ -637,8 +641,8 @@ FAILURE_ECONOMICS = [
      "Here private investment plus the resource-using parts of G already take all of "
      "output, so nothing is left for private consumption, which cannot be zero or "
      "negative.",
-     "Lower G/Y (item A + C1), or move spending from public investment or in-kind "
-     "welfare toward cash welfare (items B and C3)."),
+     "Lower G/Y (item A1 + C1), or move spending from public investment or in-kind "
+     "welfare toward cash welfare (items A2 and C3)."),
     ("optimizer labor supply",
      "Optimizers choose hours by equating the value of leisure with what an hour of work "
      "buys: θ_L·(Cᴼ + φ·Gᶜ)/(1 − Nᴼ) = (1−τⁿ)·w/(1+τᶜ). Their consumption Cᴼ is what "
@@ -650,15 +654,15 @@ FAILURE_ECONOMICS = [
      "income effect); high labor and consumption taxes cut what an hour of work buys; "
      "and a high φ makes in-kind welfare count as their own consumption. Hours cannot be "
      "negative, so no equilibrium exists.",
-     "Lower the hand-to-mouth share λ (item F), the labor or consumption tax's share "
-     "(item D), G/Y (item A + C1), or φ (item E)."),
+     "Lower the hand-to-mouth share λ (item E), the labor or consumption tax's share "
+     "(item B), G/Y (item A1 + C1), or φ (item D)."),
     ("Implied labor supply N=",
      "Hours come from equating the value of leisure with what an hour of work buys after "
      "taxes, (1−τⁿ)·w/(1+τᶜ). At these settings that condition has no solution with hours "
      "between 0 and all of the time endowment: taxes take so much of the reward for work "
      "that the household would choose to work zero or negative hours, which cannot be an "
      "equilibrium because it leaves no output to pay for G.",
-     "Lower the labor or consumption tax's share (item D) or G/Y (item A + C1)."),
+     "Lower the labor or consumption tax's share (item B) or G/Y (item A1 + C1)."),
     ("consumption of one household type",
      "Private consumption C is shared between the two types: C = λ·Cᴴ + (1−λ)·Cᴼ. "
      "Hand-to-mouth households consume their after-tax wages plus all of the cash "
@@ -666,8 +670,8 @@ FAILURE_ECONOMICS = [
      "consumption, so optimizers would be left with zero or negative consumption, which "
      "is impossible. Cash welfare is so large relative to what output leaves for private "
      "consumption that it claims more than all of it.",
-     "Lower the cash-welfare share (items B and C3), the hand-to-mouth share λ (item F), "
-     "or G/Y (item A + C1)."),
+     "Lower the cash-welfare share (items A2 and C3), the hand-to-mouth share λ (item E), "
+     "or G/Y (item A1 + C1)."),
     ("theta_L <= 0",
      "The benchmark's labor-leisure condition cannot be met with positive hours: taxes "
      "take all of what an hour of work buys, so no weight on leisure θ_L makes households "
@@ -693,8 +697,8 @@ FAILURE_ECONOMICS = [
      "show the same for balanced-budget rules with income taxes). The consumption tax "
      "does not feed back this way, since it does not tax saving, and public investment "
      "raises the tax base over time, which weakens the feedback.",
-     "Lower G/Y (item A + C1), raise the consumption tax's share (item D), or raise the "
-     "public-investment share (item B)."),
+     "Lower G/Y (item A1 + C1), raise the consumption tax's share (item B), or raise the "
+     "public-investment share (item A2)."),
     ("Complex eigenvalues",
      "The path from the old to the new steady state would oscillate: capital and "
      "consumption would overshoot and swing back and forth around the new steady "
@@ -702,7 +706,7 @@ FAILURE_ECONOMICS = [
      "base, described for the saddle path, is strong but not quite strong enough to "
      "remove the saddle path altogether. This simplified solver handles only paths that "
      "converge without oscillating.",
-     "Lower G/Y (item A + C1) or the capital and labor taxes' shares (item D)."),
+     "Lower G/Y (item A1 + C1) or the capital and labor taxes' shares (item B)."),
 ]
 
 
@@ -731,7 +735,7 @@ def section2_experiment(**kw):
 
 
 try:
-    # The current economy's composition after item C's change (A + C1, split by C3).
+    # The current economy's composition after item C's change (A1 + C1, split by C3).
     f_up_v = changed_composition(s_G_new_v, f_IG_v, f_GC_v, f_GT_v)
     experiment = section2_experiment(permanent=permanent, duration_years=duration_years)
     ss_old, ss_new, path = experiment.ss_old, experiment.ss_new, experiment.path
@@ -792,14 +796,14 @@ try:
                                             f_GC=BENCH_f_GC, phi=BENCH_phi, lam=BENCH_lam,
                                             htm_share=BENCH_htm)
     # The same (benchmark) theta_L is used for "current settings" -- see theta_L_bench.
-    # The current economy: the sidebar's settings with G/Y = A + C1.
+    # The current economy: the sidebar's settings with G/Y = A1 + C1.
     ss_current = steady_state_for_policy(theta_N_v, delta_v, r_v, A_v, theta_G_v,
                                           s_G_up_v, f_up_v[0], f_up_v[2],
                                           theta_L_bench, tax_mix_v,
                                           f_GC=f_up_v[1], phi=phi_v, lam=lam_v,
                                           htm_share=htm_v)
     # "Reverted" state under a TEMPORARY change in item C1: the current settings at
-    # G/Y = A, where G/Y returns once the change ends -- the true long-run anchor,
+    # G/Y = A1, where G/Y returns once the change ends -- the true long-run anchor,
     # since financing/composition/θ_G don't revert (see regime_transition_path).
     ss_reverted = steady_state_for_policy(theta_N_v, delta_v, r_v, A_v, theta_G_v,
                                            s_G_new_v, f_IG_v, f_GT_v,
@@ -813,11 +817,11 @@ st.info(
     "**What this page compares.** **S1** and **S2** compare two economies: **(A) the "
     "benchmark**, a fixed reference economy (described under S1; change it with "
     "⚙ Benchmark), and **(B) the economy under the sidebar's current settings** (items "
-    "A-G), with G/Y = A + C1. S1 compares their long-run equilibria; S2 follows the "
+    "A-F), with G/Y = A1 + C1. S1 compares their long-run equilibria; S2 follows the "
     "economy year by year as it moves from (A) to (B). **S3** changes only government "
     "spending, by item C (a rise or a cut, split as in item C3, for the time set in item "
     "C2), in both (A) and "
-    "the current settings at A, and compares how much each variable changes per dollar "
+    "the current settings at A1, and compares how much each variable changes per dollar "
     "of the change in spending (the multiplier)."
 )
 st.subheader("S1. Comparison between Old and New Equilibrium")
@@ -831,10 +835,10 @@ st.write("Exact, closed-form solution of the model's long-run (“great ratios�
          f"optimizers'; θ_N=0.58 and δ=10%) vs. "
          "**whatever the sidebar is currently set to**.")
 if not permanent:
-    st.info(f"**The change in item C1 is temporary (item C2).** G/Y is A + C1 = "
+    st.info(f"**The change in item C1 is temporary (item C2).** G/Y is A1 + C1 = "
             f"{s_G_new_pct + dG_pct:.1f}% for {duration_years} year(s) and then returns to "
-            f"A's {s_G_new_pct:.1f}%, while the other current settings stay. So column (B) "
-            "is the equilibrium the economy ends at: the current settings with G/Y = A. The "
+            f"A1's {s_G_new_pct:.1f}%, while the other current settings stay. So column (B) "
+            "is the equilibrium the economy ends at: the current settings with G/Y = A1. The "
             "years don't change that equilibrium, but they do change the path to it and so "
             "the accumulated welfare rows, which add up the same path as S2.")
 
@@ -843,9 +847,9 @@ if benchmark_error:
 else:
     bench_left_label = "(A) Benchmark's initial equilibrium"
     bench_right_label = ("(B) Current settings' long-run equilibrium" if permanent else
-                         f"(B) Current settings' long-run equilibrium, G/Y back at A = {s_G_new_pct:.1f}%")
-    # With a temporary change (item C2) G/Y returns to A, so the economy settles at
-    # ss_reverted: the current settings at G/Y = A, as in S2.
+                         f"(B) Current settings' long-run equilibrium, G/Y back at A1 = {s_G_new_pct:.1f}%")
+    # With a temporary change (item C2) G/Y returns to A1, so the economy settles at
+    # ss_reverted: the current settings at G/Y = A1, as in S2.
     ss_B = ss_current if permanent else ss_reverted
     bench_pct_label = "(B/A−1) % change"
 
@@ -908,7 +912,7 @@ else:
             "lifetime utility from year 0, when the economy still has (A)'s capital, through "
             f"the years of adjustment (summed to year {WELFARE_LAST_YEAR}, then held), "
             "discounted with β = 1/(1+r). S2's Welfare tab shows both year by year. All are "
-            "valued with the current φ (item E)."
+            "valued with the current φ (item D)."
         )
 
     # One bar for every row of the table above, in the same order.
@@ -929,8 +933,8 @@ else:
              "economy starts with the benchmark's capital stocks and this new "
              "regime -- tax mix, composition, φ, θ_G, and household types -- is put permanently in "
              "place at year 0. **G/Y specifically respects the Duration control "
-             "(item C2)**: Permanent means it jumps to A + C1 and stays; Temporary means it "
-             f"is A + C1 for the chosen number of years and then returns to A's "
+             "(item C2)**: Permanent means it jumps to A1 + C1 and stays; Temporary means it "
+             f"is A1 + C1 for the chosen number of years and then returns to A1's "
              f"{s_G_new_pct:.1f}% (everything else stays at current settings). "
              "Every chart shows **levels, in the same units as S1's table**. In each "
              "chart the dotted gray line is the benchmark level (column A) and the dashed "
@@ -1030,7 +1034,7 @@ if not benchmark_error and cumulative_path is not None:
                                "#db2777", b.htm_share * b.tau_n * 100)] if show_types else [])
                           + [("Consumption-tax rate τᶜ (%)", perf["tau_c"] * 100, "#16a34a",
                               b.tau_c * 100)],
-                  "Tax rates adjust every year so each tax raises its share of G (item D), so "
+                  "Tax rates adjust every year so each tax raises its share of G (item B), so "
                   "total revenue, τᵏ·RK + τⁿ·(optimizers' wages) + h·τⁿ·(hand-to-mouth wages) "
                   "+ τᶜ·C, equals government spending G every year (a balanced budget). They "
                   "come from the model's exact equations along the path."),
@@ -1150,14 +1154,14 @@ if not benchmark_error and cumulative_path is not None:
             "to the same utility. Its dashed line is the whole move, years of adjustment "
             "included (S1's accumulated value): "
             + ", ".join(f"{100 + gains_acc[k]:.2f} {label}" for label, k, _ in welfare_types)
-            + ". Both the benchmark and the policy are valued with the current φ (item E).")
+            + ". Both the benchmark and the policy are valued with the current φ (item D).")
     for tab, (tab_name, (series, caption)) in zip(st.tabs(list(s1b_tabs)), s1b_tabs.items()):
         with tab:
             st.plotly_chart(level_panels(series, yrs), use_container_width=True, key=f"s1b_{tab_name}")
             st.caption(caption)
     if not show_types:
         st.caption("The household-type, Household's Income, Inequality and Welfare tabs appear only when both the "
-                   "benchmark and the current settings have hand-to-mouth households (λ>0 in item F).")
+                   "benchmark and the current settings have hand-to-mouth households (λ>0 in item E).")
 
 # --------------------------------------------------------------------------
 # S3. Multiplier effect of government spending in (A) the benchmark and (B) the
@@ -1350,19 +1354,19 @@ with st.expander("ℹ️ Methodology notes"):
   decouples from the private-capital/consumption saddle path (it follows the exogenous
   spending path directly) so no 3-variable generalization of the eigen-decomposition is
   needed.
-- **Tax mix (item D)**: three taxes together raise revenue equal to total government
+- **Tax mix (item B)**: three taxes together raise revenue equal to total government
   spending G every year, each a fixed share of it (the default benchmark: 30% labor
   tax, 30% capital tax, 40% consumption tax); their rates adjust year by year so that they
   do. The capital tax τᵏ on rental income R·K puts a (1-τᵏ) wedge on the saving (Euler)
   margin. The labor tax puts a (1-τⁿ) wedge on optimizers' labor-leisure margin and a
   (1-h·τⁿ) wedge on hand-to-mouth households': their rate is always the share h of the
-  optimizers' (item D; 50% by default), so h < 100% is a simple progressive scheme. The
+  optimizers' (item B; 50% by default), so h < 100% is a simple progressive scheme. The
   consumption tax puts a
   1/(1+τᶜ) wedge on the labor-leisure margin only: it lowers what an hour of work
   buys, while a rate that stays constant over time leaves saving undistorted. Because
   the wedges sit on the *margin*, not on net revenue, changing the tax mix alone
   reshapes the whole steady state.
-- **Composition (item B)**: total government spending G/Y is split into public
+- **Composition (item A2)**: total government spending G/Y is split into public
   investment Iᴳ (accumulates into Kᴳ, productivity-enhancing if θ_G>0; Kᴳ enters
   production as (Kᴳ/K̄ᴳ)^θG relative to a fixed reference K̄ᴳ of about half the
   benchmark's public capital, so a higher θ_G raises output, and θ_G>0 needs a
@@ -1372,7 +1376,7 @@ with st.expander("ℹ️ Methodology notes"):
   percentages; if they don't add up to 100% they are rescaled proportionally. Iᴳ and
   Gᶜ use up output (Y=C+I+Iᴳ+Gᶜ); Gᵀ only moves income to households. With φ=0, Gᶜ
   is a pure drain; with φ=1 it crowds out private consumption one-for-one.
-- **Household types (item F)**: a share λ of households are hand-to-mouth working
+- **Household types (item E)**: a share λ of households are hand-to-mouth working
   families (no capital, no saving, labor tax at h·τⁿ, all of the cash welfare Gᵀ); the
   rest are optimizers (own the capital, pay the capital tax and the labor tax at τⁿ, no
   cash welfare). Everyone pays the consumption tax. Both types benefit from Gᶜ.
@@ -1383,7 +1387,7 @@ with st.expander("ℹ️ Methodology notes"):
   20/50/30 into public investment,
   in-kind welfare and cash welfare, φ=0.50, λ=0.3, h=50%; θ_N=0.58, δ=10% and 20% target
   hours) against whatever the sidebar is *currently*
-  set to, with G/Y = A + C1 (back at A in the long run if item C2 makes the change
+  set to, with G/Y = A1 + C1 (back at A1 in the long run if item C2 makes the change
   temporary), so every control (tax mix, composition, φ, θ_G, G/Y, household types)
   shows up as a difference there -- including the tax mix alone, since the capital-,
   labor- and consumption-tax wedges distort households' margins independent of net revenue.
@@ -1401,7 +1405,7 @@ with st.expander("ℹ️ Methodology notes"):
   100 and counts the last one for every year after that.
 - **S3 (Multiplier Effect of Government Spending)** changes G/Y by the amount in
   item C1 (a rise or a cut, permanent or temporary per item C2) in (A) the benchmark
-  and in (B) the current settings at G/Y = A,
+  and in (B) the current settings at G/Y = A1,
   while every other setting stays as it is. For each of S1's variables X except
   inequality and welfare, it reports the multiplier ΔX/ΔG -- the change in X per dollar
   of the change in government spending -- long-run (from the two steady states) and on
