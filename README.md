@@ -11,14 +11,15 @@ the long run and year by year along the transition.
 
 | Sidebar item | Setting |
 |---|---|
-| A | Size of government: G/Y before the change (A1); a rise or cut in G/Y (A2), so the current economy has G/Y = A1 + A2; whether the change in A2 is permanent or temporary, and for how many years (A3) |
+| A | Total government spending, G/Y, before any change |
 | B | Composition of spending: public investment, in-kind welfare and cash welfare |
-| C | Tax mix: the shares of revenue from the capital, labor and consumption taxes |
-| D | How much households value in-kind welfare, φ |
-| E | Share of hand-to-mouth households, λ |
-| F | Public-capital productivity, θ_G |
+| C | Change in G/Y: by how many percentage points (C1), so the current economy has G/Y = A + C1; whether the change is permanent or temporary, and for how many years (C2); how the change splits across public investment, in-kind welfare and cash welfare, in percentage points (C3) |
+| D | Tax mix: the shares of revenue from the capital, labor and consumption taxes |
+| E | How much households value in-kind welfare, φ |
+| F | Share of hand-to-mouth households, λ |
+| G | Public-capital productivity, θ_G |
 
-Items A–C are fiscal policy. Items D–F are exogenous parameters, features of the
+Items A–D are fiscal policy. Items E–G are exogenous parameters, features of the
 economy rather than policy choices, grouped in their own box in the sidebar.
 
 The benchmark economy raises revenue 30% from the capital tax, 40% from the labor
@@ -33,7 +34,7 @@ benchmark.
 ## What the app shows
 
 S1 and S2 compare two economies: **(A) the benchmark** and **(B) the economy
-under the sidebar's current settings**, with G/Y = A1 + A2. S3 changes only government spending, in
+under the sidebar's current settings**, with G/Y = A + C1. S3 changes only government spending, in
 both, and compares the multipliers.
 
 - **S1. Comparison between Old and New Equilibrium:** a table of the two
@@ -47,17 +48,17 @@ both, and compares the multipliers.
   and disposable income, income and consumption ratios, the hours gap) and
   welfare. Each welfare index (A = 100) has two values: the **new equilibrium**
   and the value **accumulated** over the move from the old to the new
-  equilibrium. A bar chart shows the % changes. If the change in A2 is
-  temporary (A3), (B) is the equilibrium the economy ends at, with G/Y back at
-  A1.
+  equilibrium. A bar chart shows the % changes. If the change in C is
+  temporary (C2), (B) is the equilibrium the economy ends at, with G/Y back at
+  A.
 - **S2. Transition from Old to New Equilibrium:** the year-by-year path from
   (A) to (B), with one tab per S1 category and every chart in S1's units. In
   each chart a dotted line marks the benchmark level and a dashed line the new
   equilibrium. The Welfare tab shows each year's welfare and the welfare
   accumulated up to that year.
-- **S3. Multiplier Effect of Government Spending:** changes G/Y by item A2
-  (a rise or a cut, permanent or temporary per A3) in both (A) and the current
-  settings at G/Y = A1,
+- **S3. Multiplier Effect of Government Spending:** changes G/Y by item C
+  (a rise or a cut, split as in C3, permanent or temporary per C2) in both (A)
+  and the current settings at G/Y = A,
   holding everything else fixed. For S1's variables 1–37, it reports the
   multipliers ΔX/ΔG, the change in X per dollar of the change in spending,
   long-run and on impact (year 0): (C) and (E) in the benchmark, (D) and (F)

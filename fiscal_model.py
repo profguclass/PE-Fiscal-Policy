@@ -405,18 +405,21 @@ def _calibrate_theta_L_tank(theta_N, delta, r, A, theta_G, s_IG, s_GC, s_GT, tax
 # 3. Log-linear dynamics (dynamic model type)
 # --------------------------------------------------------------------------
 
-def _tank_eval(ss: SteadyState, k: float, c: float, g: float, kg: float) -> dict:
+def _tank_eval(ss: SteadyState, k: float, c: float, u, kg: float) -> dict:
     """Static block plus capital accumulation and the Euler return, at log-deviations
-    (k, c=optimizer consumption, g, kg) from `ss`, in levels; works for lam=0 too.
+    (k, c=optimizer consumption, kg) from `ss` and spending deviations u = (u_IG, u_GC,
+    u_GT), each a change in that part of G as a fraction of the steady state's G (so
+    a change can have its own composition); in levels; works for lam=0 too.
     Solves aggregate hours N and the labor-tax rate tau_n by Newton's method on
     lam*N^H + (1-lam)*N^O = N and the labor tax's revenue = f_N*G, and the consumer
     price p = 1+tau_c by bisection on tau_c*C = f_C*G. The capital-tax rate is
     f_K*G / (theta_K*Y), since rental income is theta_K*Y."""
     lam, theta_L, phi = ss.lam, ss.theta_L, ss.phi
     f_K, f_N, f_C = ss.tax_mix
-    K, CO, G, KG = ss.K * np.exp(k), ss.CO * np.exp(c), ss.G * np.exp(g), ss.KG * np.exp(kg)
-    f_IG, f_GC, f_GT = (ss.s_IG / ss.s_G, ss.s_GC / ss.s_G, ss.s_GT / ss.s_G) if ss.s_G > 0 else (0.0, 0.0, 0.0)
-    GC, GT = f_GC * G, f_GT * G
+    K, CO, KG = ss.K * np.exp(k), ss.CO * np.exp(c), ss.KG * np.exp(kg)
+    u_IG, u_GC, u_GT = u
+    IG, GC, GT = ss.IG + ss.G * u_IG, ss.GC + ss.G * u_GC, ss.GT + ss.G * u_GT
+    G = IG + GC + GT
     kg_factor = KG ** ss.theta_G if (ss.theta_G > 0 and KG > 0) else 1.0
     h_share = HTM_LABOR_TAX_SHARE
 
@@ -472,27 +475,31 @@ def _tank_eval(ss: SteadyState, k: float, c: float, g: float, kg: float) -> dict
     Y, w, NH, CH, NO, tau_n, p, _, _ = block(N, tau_n)
     tau_k = f_K * G / (ss.theta_K * Y)
     C = lam * CH + (1.0 - lam) * CO
-    I = Y - C - (f_IG + f_GC) * G
+    I = Y - C - IG - GC
     return dict(Y=Y, N=N, NH=NH, CH=CH, NO=NO, C=C, I=I, w=w, tau_k=tau_k, tau_n=tau_n, p=p,
                 Knext=(1.0 - ss.delta) * K + I,
                 R=1.0 + (1.0 - tau_k) * ss.theta_K * Y / K - ss.delta)
 
 
+STATE_ROWS = ("k", "c", "u_IG", "u_GC", "u_GT", "kg")  # rows of TransitionPath.state
+
+
 def _tank_linearization(ss: SteadyState) -> dict:
     """Numerical first-order coefficients of the model around `ss` (any lam and tax mix),
-    in the form `_solve_saddle_path` uses, plus a gradient row (w.r.t. k, c, g, kg) for
-    each reported variable's log-deviation.
+    in the form `_solve_saddle_path` uses, plus a gradient row (w.r.t. the STATE_ROWS:
+    k, c, u_IG, u_GC, u_GT, kg) for each reported variable's log-deviation. The three
+    spending coefficients come as arrays, one entry per part of G.
 
     Euler equation in logs: x_t + pi_t = x_{t+1} + pi_{t+1} - rho_{t+1}, with x the
     optimizers' effective consumption, pi the consumer price 1+tau_c, rho the gross
     after-tax return; pi and rho are linear in the state through their gradients."""
-    base = dict(k=0.0, c=0.0, g=0.0, kg=0.0)
     h = 1e-6
     grads = {}
-    for name in ("k", "c", "g", "kg"):
-        up, dn = dict(base), dict(base)
-        up[name], dn[name] = h, -h
-        e_up, e_dn = _tank_eval(ss, **up), _tank_eval(ss, **dn)
+    for j, name in enumerate(STATE_ROWS):
+        up, dn = np.zeros(6), np.zeros(6)
+        up[j], dn[j] = h, -h
+        e_up = _tank_eval(ss, up[0], up[1], up[2:5], up[5])
+        e_dn = _tank_eval(ss, dn[0], dn[1], dn[2:5], dn[5])
         for var in ("Y", "N", "NO", "C", "I", "Knext", "R", "p", "CH", "NH"):
             if var in ("CH", "NH") and ss.lam == 0:
                 continue  # no hand-to-mouth households
@@ -500,49 +507,51 @@ def _tank_linearization(ss: SteadyState) -> dict:
                 continue  # corner N^H=0: hours stay at 0 for small deviations
             ref = {"Knext": ss.K, "R": 1.0 + ss.r, "p": 1.0 + ss.tau_c}.get(var)
             ref = getattr(ss, var) if ref is None else ref
-            grads.setdefault(var, np.zeros(4))[("k", "c", "g", "kg").index(name)] = \
+            grads.setdefault(var, np.zeros(6))[j] = \
                 (np.log(e_up[var] / ref) - np.log(e_dn[var] / ref)) / (2 * h)
 
     X_O = ss.CO + ss.phi * ss.GC
-    a, b = ss.CO / X_O, ss.phi * ss.GC / X_O
-    Fk, Fc, Fg, Fkg = grads["R"]
-    Pk, Pc, Pg, Pkg = grads["p"]
-    Phi_kk, Phi_kc, Phi_kg, Phi_k_kg = grads["Knext"]
-    A0 = a + Pc  # coefficient on c_t
+    a = ss.CO / X_O
+    b = np.array([0.0, ss.phi * ss.G / X_O, 0.0])  # effective consumption moves with Gᶜ only
+    F, P, Phi = grads["R"], grads["p"], grads["Knext"]
+    A0 = a + P[1]  # coefficient on c_t
     return dict(a=a, b=b, grads=grads,
-                coef_c=(a + Pc - Fc) / A0, coef_k=(Pk - Fk) / A0, coef_g=(b + Pg - Fg) / A0,
-                coef_kg=(Pkg - Fkg) / A0, coef_g0=-(b + Pg) / A0,
-                coef_k0=-Pk / A0, coef_kg0=-Pkg / A0,
-                Phi_kk=Phi_kk, Phi_kc=Phi_kc, Phi_kg=Phi_kg, Phi_k_kg=Phi_k_kg)
+                coef_c=(a + P[1] - F[1]) / A0, coef_k=(P[0] - F[0]) / A0,
+                coef_u=(b + P[2:5] - F[2:5]) / A0, coef_kg=(P[5] - F[5]) / A0,
+                coef_u0=-(b + P[2:5]) / A0, coef_k0=-P[0] / A0, coef_kg0=-P[5] / A0,
+                Phi_kk=Phi[0], Phi_kc=Phi[1], Phi_ku=Phi[2:5], Phi_k_kg=Phi[5])
 
 
-def _kg_hat_path(delta: float, g_full: np.ndarray, kg0: float) -> np.ndarray:
+def _kg_hat_path(ss: SteadyState, u_full: np.ndarray, kg0: float) -> np.ndarray:
     """Public capital's own law of motion decouples from the K/C saddle-path system:
-    kg_hat_{t+1} = (1-delta)*kg_hat_t + delta*g_hat_t, given the (exogenous) g_hat path.
-    Returns T+1 values (kg_hat_0 .. kg_hat_T), the extra period letting Euler-equation
-    forcing terms reference kg_hat_{T} = kg_hat one step beyond the g_hat path."""
-    T = len(g_full)
+    kg_hat_{t+1} = (1-delta)*kg_hat_t + delta*(IG_t - IG)/IG, given the (exogenous)
+    public-investment deviation u_IG = (IG_t - IG)/G. Returns T+1 values (kg_hat_0 ..
+    kg_hat_T), the extra period letting Euler-equation forcing terms reference kg_hat_{T}
+    = kg_hat one step beyond the spending path. Without public investment in `ss` there
+    is no public capital to measure deviations against, so kg_hat stays at kg0."""
+    T = len(u_full)
     kg = np.zeros(T + 1)
     kg[0] = kg0
-    g_ext = np.concatenate([g_full, [0.0]])
+    ig = np.concatenate([u_full[:, 0], [0.0]]) * (ss.G / ss.IG if ss.IG > 0 else 0.0)
     for t in range(T):
-        kg[t + 1] = (1.0 - delta) * kg[t] + delta * g_ext[t]
+        kg[t + 1] = (1.0 - ss.delta) * kg[t] + ss.delta * ig[t]
     return kg
 
 
-def _solve_saddle_path(Phi_kk: float, Phi_kc: float, Phi_kg: float, Phi_k_kg: float,
-                        coef_c: float, coef_k: float, coef_g: float, coef_kg: float,
-                        coef_g0: float,
-                        k0: float, g_full: np.ndarray, kg_full: np.ndarray,
+def _solve_saddle_path(Phi_kk: float, Phi_kc: float, Phi_ku: np.ndarray, Phi_k_kg: float,
+                        coef_c: float, coef_k: float, coef_u: np.ndarray, coef_kg: float,
+                        coef_u0: np.ndarray,
+                        k0: float, u_full: np.ndarray, kg_full: np.ndarray,
                         coef_k0: float = 0.0, coef_kg0: float = 0.0) -> tuple[np.ndarray, np.ndarray]:
     """Exact saddle-path solution of the linear perfect-foresight system
 
-        k_hat_{t+1} = Phi_kk*k_hat_t + Phi_kc*c_hat_t + Phi_kg*g_hat_t + Phi_k_kg*kg_hat_t
-        c_hat_t     = coef_c*c_hat_{t+1} + coef_k*k_hat_{t+1} + coef_g*g_hat_{t+1}
-                      + coef_kg*kg_hat_{t+1} + coef_g0*g_hat_t + coef_k0*k_hat_t
+        k_hat_{t+1} = Phi_kk*k_hat_t + Phi_kc*c_hat_t + Phi_ku.u_t + Phi_k_kg*kg_hat_t
+        c_hat_t     = coef_c*c_hat_{t+1} + coef_k*k_hat_{t+1} + coef_u.u_{t+1}
+                      + coef_kg*kg_hat_{t+1} + coef_u0.u_t + coef_k0*k_hat_t
                       + coef_kg0*kg_hat_t
 
-    via eigen-decomposition (King-Plosser-Rebelo / Blanchard-Kahn method), for T periods,
+    where u_t = (u_IG, u_GC, u_GT) are the spending deviations (u_full has shape (T, 3)),
+    solved via eigen-decomposition (King-Plosser-Rebelo / Blanchard-Kahn method), for T periods,
     with kg_hat_t supplied exogenously as a length-(T+1) array (it is solved separately --
     see `_kg_hat_path` -- since its own law of motion does not depend on k_hat or c_hat;
     the extra period lets the Euler-equation forcing reference kg_hat_{t+1} at t=T-1).
@@ -572,13 +581,13 @@ def _solve_saddle_path(Phi_kk: float, Phi_kc: float, Phi_kg: float, Phi_k_kg: fl
     V = vecs[:, [stable_idx, unstable_idx]]
     Vinv = np.linalg.inv(V)
 
-    T = len(g_full)
-    g_ext = np.concatenate([g_full, [0.0]])
+    T = len(u_full)
+    u_ext = np.vstack([u_full, np.zeros((1, 3))])
     kg_now = kg_full[:T]     # kg_hat_t for t=0..T-1
     kg_next = kg_full[1:T + 1]  # kg_hat_{t+1} for t=0..T-1
-    Nk = Phi_kg * g_ext[:T] + Phi_k_kg * kg_now
-    Nc = (-coef_k * (Phi_kg * g_ext[:T] + Phi_k_kg * kg_now) - coef_g * g_ext[1:T + 1]
-          - coef_kg * kg_next - coef_g0 * g_ext[:T] - coef_kg0 * kg_now) / coef_c
+    Nk = u_ext[:T] @ Phi_ku + Phi_k_kg * kg_now
+    Nc = (-coef_k * Nk - u_ext[1:T + 1] @ coef_u
+          - coef_kg * kg_next - u_ext[:T] @ coef_u0 - coef_kg0 * kg_now) / coef_c
     N = np.stack([Nk, Nc], axis=1)
     n = N @ Vinv.T  # forcing rotated into the eigen-basis: n[:,0]=stable comp., n[:,1]=unstable
 
@@ -614,32 +623,35 @@ class TransitionPath:
     CH: Optional[np.ndarray] = None
     NO: Optional[np.ndarray] = None
     NH: Optional[np.ndarray] = None
-    # Log-deviations of (k, optimizers' c, g, kg) from the steady state the path is
-    # linearized around, shape (4, T): the input to `household_outcomes`.
+    # Deviations (k, optimizers' c, u_IG, u_GC, u_GT, kg) -- see STATE_ROWS -- from the
+    # steady state the path is linearized around, shape (6, T): the input to
+    # `household_outcomes`.
     state: Optional[np.ndarray] = None
 
 
-def simulate_transition(ss_ref: SteadyState, g_path: np.ndarray,
+def simulate_transition(ss_ref: SteadyState, u_path: np.ndarray,
                          k0: float = 0.0, kg0: float = 0.0, T_sim: int = 300) -> TransitionPath:
-    """Simulate the perfect-foresight transition path in log-deviations from steady
-    state `ss_ref`, given an exogenous path of government-spending log-deviations
-    `g_path` (padded with zeros afterwards) and initial capital log-deviations k0/kg0."""
+    """Simulate the perfect-foresight transition path in deviations from steady state
+    `ss_ref`, given an exogenous path of spending deviations `u_path`, shape (n, 3): the
+    changes in (IG, GC, GT), each as a fraction of ss_ref's G, padded with zeros
+    afterwards; and initial capital log-deviations k0/kg0."""
     tank = ss_ref.lam > 0
     coeffs = _tank_linearization(ss_ref)
 
-    g_full = np.zeros(T_sim)
-    n_g = min(len(g_path), T_sim)
-    g_full[:n_g] = g_path[:n_g]
+    u_path = np.asarray(u_path, dtype=float).reshape(-1, 3)
+    u_full = np.zeros((T_sim, 3))
+    n_u = min(len(u_path), T_sim)
+    u_full[:n_u] = u_path[:n_u]
 
-    kg_full_ext = _kg_hat_path(ss_ref.delta, g_full, kg0)  # length T_sim+1
-    k, c = _solve_saddle_path(coeffs["Phi_kk"], coeffs["Phi_kc"], coeffs["Phi_kg"], coeffs["Phi_k_kg"],
-                               coeffs["coef_c"], coeffs["coef_k"], coeffs["coef_g"], coeffs["coef_kg"],
-                               coeffs["coef_g0"], k0, g_full, kg_full_ext,
+    kg_full_ext = _kg_hat_path(ss_ref, u_full, kg0)  # length T_sim+1
+    k, c = _solve_saddle_path(coeffs["Phi_kk"], coeffs["Phi_kc"], coeffs["Phi_ku"], coeffs["Phi_k_kg"],
+                               coeffs["coef_c"], coeffs["coef_k"], coeffs["coef_u"], coeffs["coef_kg"],
+                               coeffs["coef_u0"], k0, u_full, kg_full_ext,
                                coef_k0=coeffs["coef_k0"], coef_kg0=coeffs["coef_kg0"])
     kg_full = kg_full_ext[:T_sim]
-    x = coeffs["a"] * c + coeffs["b"] * g_full  # effective consumption C + phi*GC (optimizers)
+    x = coeffs["a"] * c + u_full @ coeffs["b"]  # effective consumption C + phi*GC (optimizers)
 
-    state = np.vstack([k, c, g_full, kg_full])
+    state = np.vstack([k, c, u_full.T, kg_full])
     gr = coeffs["grads"]
     y, n, i, c_agg = gr["Y"] @ state, gr["N"] @ state, gr["I"] @ state, gr["C"] @ state
     x = x + gr["p"] @ state  # marginal utility of a unit of spending: (C^O + phi*GC)*p
@@ -656,7 +668,7 @@ def simulate_transition(ss_ref: SteadyState, g_path: np.ndarray,
     kg_pct = 100.0 * kg_full
     n_pct = 100.0 * n
     w_pct = 100.0 * w
-    g_pct = 100.0 * g_full
+    g_pct = 100.0 * np.log1p(u_full.sum(axis=1))  # total G, % deviation
 
     r_dev_bp = np.zeros_like(c)
     r_dev_bp[:-1] = 10000.0 * (1.0 + ss_ref.r) * (x[1:] - x[:-1])
@@ -685,11 +697,14 @@ def run_experiment(theta_N: float, delta: float, r: float, A: float, theta_G: fl
                     N_target: float, financing: Financing,
                     permanent: bool, duration_years: int = 4, T_sim: int = 300,
                     f_GC: float = 0.0, phi: float = 0.0, lam: float = 0.0,
-                    theta_L: Optional[float] = None) -> PolicyExperiment:
+                    theta_L: Optional[float] = None,
+                    f_new: Optional[tuple] = None) -> PolicyExperiment:
     """Full comparative-steady-state + transition-path experiment for a change in total
-    government spending from s_G_old to s_G_new, holding the composition fractions
-    (f_IG, f_GC, f_GT) fixed. theta_L is calibrated so that hours hit N_target at
-    s_G_old, unless a theta_L is given."""
+    government spending from s_G_old, with composition fractions (f_IG, f_GC, f_GT), to
+    s_G_new, with composition f_new = (f_IG, f_GC, f_GT) of the new total (by default
+    the same fractions). A temporary change raises each part of G by its change between
+    the two steady states. theta_L is calibrated so that hours hit N_target at s_G_old,
+    unless a theta_L is given."""
     mix = _tax_mix(financing)
     if theta_L is None:
         s_IG_old, s_GC_old, s_GT_old = s_G_old * f_IG, s_G_old * f_GC, s_G_old * f_GT
@@ -698,8 +713,9 @@ def run_experiment(theta_N: float, delta: float, r: float, A: float, theta_G: fl
 
     ss_old = steady_state_for_policy(theta_N, delta, r, A, theta_G, s_G_old, f_IG, f_GT,
                                        theta_L, mix, f_GC=f_GC, phi=phi, lam=lam)
-    ss_new = steady_state_for_policy(theta_N, delta, r, A, theta_G, s_G_new, f_IG, f_GT,
-                                       theta_L, mix, f_GC=f_GC, phi=phi, lam=lam)
+    nf_IG, nf_GC, nf_GT = (f_IG, f_GC, f_GT) if f_new is None else f_new
+    ss_new = steady_state_for_policy(theta_N, delta, r, A, theta_G, s_G_new, nf_IG, nf_GT,
+                                       theta_L, mix, f_GC=nf_GC, phi=phi, lam=lam)
 
     dY = ss_new.Y - ss_old.Y
     dG = ss_new.G - ss_old.G
@@ -709,16 +725,16 @@ def run_experiment(theta_N: float, delta: float, r: float, A: float, theta_G: fl
         ss_ref = ss_new
         k0 = np.log(ss_old.K / ss_new.K)
         kg0 = np.log(ss_old.KG / ss_new.KG) if ss_new.KG > 0 else 0.0
-        g_path = np.zeros(1)
+        u_path = np.zeros((1, 3))
     else:
         ss_ref = ss_old
         k0 = 0.0
         kg0 = 0.0
-        dG_frac = (ss_new.G - ss_old.G) / ss_old.G if ss_old.G != 0 else 0.0
-        g_level = np.log(1.0 + dG_frac)
-        g_path = np.concatenate([np.full(duration_years, g_level), np.zeros(1)])
+        u_level = np.array([ss_new.IG - ss_old.IG, ss_new.GC - ss_old.GC,
+                            ss_new.GT - ss_old.GT]) / ss_old.G
+        u_path = np.vstack([np.tile(u_level, (duration_years, 1)), np.zeros((1, 3))])
 
-    path = simulate_transition(ss_ref, g_path, k0=k0, kg0=kg0, T_sim=T_sim)
+    path = simulate_transition(ss_ref, u_path, k0=k0, kg0=kg0, T_sim=T_sim)
 
     Y_level_0 = ss_ref.Y * float(np.exp(path.Y[0] / 100.0))
     dY0 = Y_level_0 - ss_old.Y
@@ -761,24 +777,27 @@ def run_experiment(theta_N: float, delta: float, r: float, A: float, theta_G: fl
 
 def household_outcomes(ss: SteadyState, state: np.ndarray) -> dict:
     """Levels of output, prices, and each household type's incomes, consumption, and
-    hours along a path. `state` holds log-deviations (k, optimizers' c, g, kg) from
-    `ss`, one column per year (TransitionPath.state); each year's static block is solved
+    hours along a path. `state` holds the deviations (k, optimizers' c, u_IG, u_GC,
+    u_GT, kg) from `ss` (see STATE_ROWS), one column per year (TransitionPath.state);
+    each year's static block is solved
     exactly. Incomes are per person: market labor and capital income (before tax), and
     disposable income = the right-hand side of each household's budget constraint
     (spent on consumption including the consumption tax, and on investment).
     With lam=0 everyone is an optimizer, who then also receives the cash welfare."""
     lam = ss.lam
     rows = []
-    for k, c, g, kg in np.asarray(state).T:
-        e = _tank_eval(ss, k, c, g, kg)
-        K, GC, GT = ss.K * np.exp(k), ss.GC * np.exp(g), ss.GT * np.exp(g)
+    for k, c, u_IG, u_GC, u_GT, kg in np.asarray(state).T:
+        e = _tank_eval(ss, k, c, (u_IG, u_GC, u_GT), kg)
+        K = ss.K * np.exp(k)
+        IG, GC, GT = ss.IG + ss.G * u_IG, ss.GC + ss.G * u_GC, ss.GT + ss.G * u_GT
         tau_k, tau_n = e["tau_k"], e["tau_n"]
         tau_nH = HTM_LABOR_TAX_SHARE * tau_n
         R = ss.theta_K * e["Y"] / K  # rental rate of capital
         KO = K / (1.0 - lam)  # capital per optimizer
         rows.append(dict(
             Y=e["Y"], N=e["N"], w=e["w"], R=R, tau_k=tau_k, tau_n=tau_n,
-            tau_nH=tau_nH if lam > 0 else np.nan, tau_c=e["p"] - 1.0, GC=GC,
+            tau_nH=tau_nH if lam > 0 else np.nan, tau_c=e["p"] - 1.0,
+            G=IG + GC + GT, IG=IG, GC=GC, GT=GT,
             CO=ss.CO * np.exp(c), NO=e["NO"],
             CH=e["CH"] if lam > 0 else np.nan, NH=e["NH"] if lam > 0 else np.nan,
             labor=e["w"] * e["N"], capital=R * K,

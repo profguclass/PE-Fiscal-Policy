@@ -400,7 +400,7 @@ def render():
     st.markdown(
         """
     **How the government pays.** The government cannot borrow, so every year the three
-    taxes together must pay for all of its spending. Sidebar item C fixes the share of
+    taxes together must pay for all of its spending. Sidebar item D fixes the share of
     spending that each tax pays for, and the three shares add up to one. The tax rates then
     adjust each year so that each tax raises exactly its share.
 
