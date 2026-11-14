@@ -1371,20 +1371,21 @@ if missing:
             "(the transition path cannot be computed there; see the explanation at the top "
             "of the page) -- only long-run multipliers are shown there.")
 
-# Columns (C)-(F): long-run and impact multipliers in (A) and (B), and their differences.
+# Long-run and year-0 (impact) multipliers in (A) and (B), and their differences.
 mult_cols = {
-    "(C) LR in A": lr_A, "(D) LR in B": lr_B, "(D-C) Diff": [d - c for c, d in zip(lr_A, lr_B)],
-    "(E) Impact in A": imp_A, "(F) Impact in B": imp_B, "(F-E) Diff": [f - e for e, f in zip(imp_A, imp_B)],
+    "(A)'s LR": lr_A, "(B)'s LR": lr_B, "(B)-(A) in LR ME": [d - c for c, d in zip(lr_A, lr_B)],
+    "(A)'s Year0": imp_A, "(B)'s Year0": imp_B, "(B)-(A) in Year0 ME": [f - e for e, f in zip(imp_A, imp_B)],
 }
 mult_table = pd.DataFrame({"Category": [cat for cat, _, _ in rows_s3], "Variable": numbered(rows_s3),
                            **mult_cols})
 
 if dG_pct != 0:
     st.markdown(
-        "Columns: **(C)** long-run multiplier in (A) the benchmark · **(D)** long-run "
-        "multiplier in (B) the current settings · **(D-C)** their difference · **(E)** "
-        "impact (year-0) multiplier in (A) · **(F)** impact multiplier in (B) · **(F-E)** "
-        "their difference. Every multiplier is ΔX/ΔG.")
+        "Columns: **(A)'s LR** long-run multiplier in (A) the benchmark · **(B)'s LR** "
+        "long-run multiplier in (B) the current settings · **(B)-(A) in LR ME** their "
+        "difference · **(A)'s Year0** impact (year-0) multiplier in (A) · **(B)'s Year0** "
+        "impact multiplier in (B) · **(B)-(A) in Year0 ME** their difference. Every "
+        "multiplier (ME, multiplier effect) is ΔX/ΔG.")
     st.dataframe(
         mult_table,
         hide_index=True,
@@ -1411,10 +1412,10 @@ for rows, title, height in () if dG_pct == 0 else (
         (mult_table[~is_pp], "Multipliers ΔX/ΔG: change in each variable per dollar of change in government spending", 560),
         (mult_table[is_pp], "Rates and hours: percentage-point change per dollar of change in government spending", 480)):
     fig_mult = go.Figure()
-    for name, col, color in (("(C) Long-run, benchmark", "(C) LR in A", "#93c5fd"),
-                             ("(D) Long-run, current", "(D) LR in B", "#2563eb"),
-                             ("(E) Impact, benchmark", "(E) Impact in A", "#fcd34d"),
-                             ("(F) Impact, current", "(F) Impact in B", "#d97706")):
+    for name, col, color in (("(A)'s LR", "(A)'s LR", "#93c5fd"),
+                             ("(B)'s LR", "(B)'s LR", "#2563eb"),
+                             ("(A)'s Year0", "(A)'s Year0", "#fcd34d"),
+                             ("(B)'s Year0", "(B)'s Year0", "#d97706")):
         fig_mult.add_trace(go.Bar(name=name, x=rows["Variable"].str.strip(), y=rows[col], marker_color=color))
     fig_mult.add_hline(y=0, line_dash="dot", line_color="gray")
     fig_mult.update_layout(barmode="group", title=title,
@@ -1510,7 +1511,8 @@ with st.expander("ℹ️ Methodology notes"):
   inequality and welfare, it reports the multiplier ΔX/ΔG -- the change in X per dollar
   of the change in government spending -- long-run (from the two steady states) and on
   impact (year 0 of the transition path, whose static equations are solved exactly):
-  (C) and (E) in (A), (D) and (F) in (B), and the differences (D-C) and (F-E).
+  (A)'s LR and Year0, (B)'s LR and Year0, and the differences (B)-(A) in LR ME and
+  (B)-(A) in Year0 ME.
         """
     )
 
