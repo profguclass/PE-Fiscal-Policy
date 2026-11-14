@@ -820,9 +820,12 @@ try:
 except Exception as exc:  # noqa: BLE001
     benchmark_error = str(exc)
 
-def settings_comparison():
+def settings_comparison(for_s3=False):
     """HTML table of the benchmark (A) vs the settings last applied with Run (B),
-    with every changed item highlighted, plus a one-line list of the changes."""
+    with every changed item highlighted, plus a one-line list of the changes.
+    S1/S2 compare (A) with (B) at G/Y = A1 + C1, so item C is a difference between
+    them. S3 starts (A) and (B) at their own A1 and applies the same item C to both,
+    so there item C is a shared experiment, not a difference."""
     def num(x):
         return f"{x:.2f}".rstrip("0").rstrip(".")
 
@@ -854,12 +857,21 @@ def settings_comparison():
     add3("B1. Tax mix: labor / capital / consumption",
          (BENCH_f_N_pct, BENCH_f_K_pct, BENCH_f_C_pct), (n, k, c), "%", "%p")
     add("B2. Hand-to-mouth labor-tax rate, h", BENCH_htm_pct, htm_pct, "% of τⁿ", "%p")
-    if dG_pct == 0:
+    how = "permanent" if permanent else f"temporary, {duration_years} year(s)"
+    shock = f"{diff(0, dG_pct, '%p')}, {how}; split {triple(dX_pct)}%p"
+    if for_s3:
+        if dG_pct == 0:
+            rows.append(("C. Change in G/Y, applied to both", "none", "none", "", ""))
+        else:
+            rows.append(("C. Change in G/Y, applied to both",
+                         f"{shock}<br>G/Y {num(BENCH_s_G_pct)}% → {num(BENCH_s_G_pct + dG_pct)}%",
+                         f"{shock}<br>G/Y {num(s_G_new_pct)}% → {num(s_G_new_pct + dG_pct)}%",
+                         "", ""))
+    elif dG_pct == 0:
         rows.append(("C. Change in G/Y (C1, C2, C3)", "none", "none", "", ""))
     else:
-        how = "permanent" if permanent else f"temporary, {duration_years} year(s)"
         rows.append(("C. Change in G/Y (C1, C2, C3)", "none",
-                     f"{diff(0, dG_pct, '%p')}, {how}; split {triple(dX_pct)}%p",
+                     shock,
                      f"G/Y {num(s_G_new_pct)}% → {num(s_G_new_pct + dG_pct)}%",
                      f"{diff(0, dG_pct, '%p')} ({how})"))
     add("D. Value of in-kind transfer, φ", BENCH_phi, phi)
@@ -867,20 +879,31 @@ def settings_comparison():
     add("F. Public-capital productivity, θ_G", BENCH_theta_G, theta_G)
 
     changes = [f"{r[0].split('. ')[0]} {r[4]}" for r in rows if r[3]]
-    if changes:
+    if for_s3:
+        lead = (f"**S3 applies the same change in G/Y ({shock}) to both economies**"
+                if dG_pct != 0 else "**S3 needs a change in G/Y (item C1 ≠ 0)**")
+        if changes:
+            st.markdown(lead + ". The two economies differ in: " + "; ".join(changes)
+                        + ". So the difference in multipliers, (B) − (A), shows how these "
+                        "settings change the effect of the same spending change.")
+        else:
+            st.markdown(lead + ". Items A, B and D–F are the benchmark's, so (A) and (B) are "
+                        "the same economy and their multipliers are identical.")
+    elif changes:
         st.markdown("**You are comparing the benchmark (A) with these changes (B):** "
                     + "; ".join(changes) + ".")
     else:
         st.markdown("**The current settings are the benchmark**, so (A) and (B) are the "
                     "same economy. Change a sidebar item and click **▶ Run** to compare.")
 
+    b_head = "(B) Current settings, starting at A1" if for_s3 else "(B) Current settings"
     head = ("<tr><th class='item'>Item</th><th>(A) Benchmark"
             + (" (your own)" if "bench" in st.session_state else "")
-            + "</th><th>(B) Current settings</th><th>Change, (B) − (A)</th></tr>")
+            + f"</th><th>{b_head}</th><th>Change, (B) − (A)</th></tr>")
     body = "".join(
         f"<tr class='{'chg' if chg else ''}'><td class='item'>{item}</td>"
         f"<td>{a}</td><td>{'<b>' + b + '</b>' if chg else b}</td>"
-        f"<td class='delta'>{'<b>' + chg + '</b>' if chg else '—'}</td></tr>"
+        f"<td class='delta'>{'<b>' + chg + '</b>' if chg else ('same' if for_s3 and item.startswith('C.') and dG_pct else '—')}</td></tr>"
         for item, a, b, chg, _ in rows)
     st.markdown(
         "<style>"
@@ -896,7 +919,7 @@ def settings_comparison():
                "last applied with ▶ Run; items rescaled to 100% are shown after rescaling.")
 
 
-st.subheader("What Is Being Compared")
+st.subheader("What Is Being Compared in S1 and S2")
 settings_comparison()
 
 st.info(
@@ -1256,6 +1279,8 @@ if not benchmark_error and cumulative_path is not None:
 # --------------------------------------------------------------------------
 
 st.subheader("S3. Multiplier Effect of Government Spending")
+st.markdown("##### What Is Being Compared in S3")
+settings_comparison(for_s3=True)
 change_word = "raising" if dG_pct > 0 else "cutting"
 duration_text = "permanently" if permanent else f"for {duration_years} year(s) (item C2)"
 st.write(f"Simulates **{change_word} G/Y by {abs(dG_pct):.1f} percentage points (item C1), "
