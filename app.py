@@ -951,7 +951,7 @@ else:
     # With a temporary change (item C2) G/Y returns to A1, so the economy settles at
     # ss_reverted: the current settings at G/Y = A1, as in S2.
     ss_B = ss_current if permanent else ss_reverted
-    bench_pct_label = "(B/A−1) % change"
+    bench_pct_label = "(C) B/A-1: %change"
 
     # Household-type rows need hand-to-mouth households in both scenarios.
     show_types = ss_benchmark.lam > 0 and ss_B.lam > 0
@@ -990,17 +990,25 @@ else:
     bench_both_zero = (bench_table[bench_left_label] == 0) & (bench_table[bench_right_label] == 0)
     bench_table[bench_pct_label] = 100 * (bench_table[bench_right_label] / bench_table[bench_left_label].replace(0, np.nan) - 1)
     bench_table.loc[bench_both_zero, bench_pct_label] = 0.0
+    # The bar chart below keeps the % change; in the table, the Gini rows show the
+    # difference (B) − (A) instead, since a % change of a Gini coefficient is hard to read.
+    bench_pct_change = bench_table[bench_pct_label].copy()
+    gini_rows = bench_table["Variable"].str.contains("Gini coefficient")
+    bench_table.loc[gini_rows, bench_pct_label] = (bench_table.loc[gini_rows, bench_right_label]
+                                                   - bench_table.loc[gini_rows, bench_left_label])
 
     st.dataframe(
-        bench_table,
+        bench_table.style
+        .format("{:.4f}", subset=[bench_left_label, bench_right_label], na_rep="n/a")
+        .format("{:+.2f}%", subset=pd.IndexSlice[~gini_rows, [bench_pct_label]], na_rep="n/a")
+        .format("{:+.4f}", subset=pd.IndexSlice[gini_rows, [bench_pct_label]], na_rep="n/a"),
         hide_index=True,
         use_container_width=True,
-        column_config={
-            bench_left_label: st.column_config.NumberColumn(format="%.4f"),
-            bench_right_label: st.column_config.NumberColumn(format="%.4f"),
-            bench_pct_label: st.column_config.NumberColumn(format="%+.2f%%"),
-        },
     )
+    if gini_rows.any():
+        st.caption("**Exception in column (C):** for the Gini coefficient rows "
+                   f"({', '.join(v.split('.')[0].strip() for v in bench_table.loc[gini_rows, 'Variable'])}), "
+                   "column (C) shows the difference (B) − (A), not the % change.")
     if show_types:
         st.caption(
             "**Inequality** compares the two household types in each steady state; higher "
@@ -1017,7 +1025,6 @@ else:
 
     # One bar for every row of the table above, in the same order.
     bench_bar_vars = bench_table["Variable"].str.strip().tolist()
-    bench_pct_change = bench_table[bench_pct_label]
     # Rounded so floating-point noise (e.g. -3e-14% when (B) equals (A)) draws no bar.
     bench_bar_heights = bench_pct_change.fillna(0.0).round(8).values + 0.0
     bench_bar_text = [("n/a" if pd.isna(v) else f"{v:+.2f}%") for v in bench_pct_change.values]
