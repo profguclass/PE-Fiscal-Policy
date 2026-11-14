@@ -951,7 +951,7 @@ else:
     # With a temporary change (item C2) G/Y returns to A1, so the economy settles at
     # ss_reverted: the current settings at G/Y = A1, as in S2.
     ss_B = ss_current if permanent else ss_reverted
-    bench_pct_label = "(C) B/A-1: %change"
+    bench_pct_label = "(C) % or %p change"
 
     # Household-type rows need hand-to-mouth households in both scenarios.
     show_types = ss_benchmark.lam > 0 and ss_B.lam > 0
@@ -990,25 +990,37 @@ else:
     bench_both_zero = (bench_table[bench_left_label] == 0) & (bench_table[bench_right_label] == 0)
     bench_table[bench_pct_label] = 100 * (bench_table[bench_right_label] / bench_table[bench_left_label].replace(0, np.nan) - 1)
     bench_table.loc[bench_both_zero, bench_pct_label] = 0.0
-    # The bar chart below keeps the % change; in the table, the Gini rows show the
-    # difference (B) − (A) instead, since a % change of a Gini coefficient is hard to read.
+    # The bar chart below keeps the % change of every row. In the table, rates measured
+    # in % (interest, rental and tax rates) show their change in percentage points, and
+    # the Gini rows show the difference (B) − (A), since a % change of a rate or of a
+    # Gini coefficient is hard to read.
     bench_pct_change = bench_table[bench_pct_label].copy()
+    pp_rows = (bench_table["Variable"].str.contains(" rate")
+               & bench_table["Variable"].str.strip().str.endswith("(%)"))
     gini_rows = bench_table["Variable"].str.contains("Gini coefficient")
-    bench_table.loc[gini_rows, bench_pct_label] = (bench_table.loc[gini_rows, bench_right_label]
-                                                   - bench_table.loc[gini_rows, bench_left_label])
+    diff_rows = pp_rows | gini_rows
+    bench_table.loc[diff_rows, bench_pct_label] = (bench_table.loc[diff_rows, bench_right_label]
+                                                   - bench_table.loc[diff_rows, bench_left_label])
 
     st.dataframe(
         bench_table.style
         .format("{:.4f}", subset=[bench_left_label, bench_right_label], na_rep="n/a")
-        .format("{:+.2f}%", subset=pd.IndexSlice[~gini_rows, [bench_pct_label]], na_rep="n/a")
+        .format("{:+.2f}%", subset=pd.IndexSlice[~diff_rows, [bench_pct_label]], na_rep="n/a")
+        .format("{:+.2f}%p", subset=pd.IndexSlice[pp_rows, [bench_pct_label]], na_rep="n/a")
         .format("{:+.4f}", subset=pd.IndexSlice[gini_rows, [bench_pct_label]], na_rep="n/a"),
         hide_index=True,
         use_container_width=True,
     )
+
+    def row_numbers(rows):
+        return ", ".join(v.split(".")[0].strip() for v in bench_table.loc[rows, "Variable"])
+
+    note = ("Column (C) shows the % change, or the change in percentage points (%p) for the "
+            f"rates measured in % (rows {row_numbers(pp_rows)}).")
     if gini_rows.any():
-        st.caption("**Exception in column (C):** for the Gini coefficient rows "
-                   f"({', '.join(v.split('.')[0].strip() for v in bench_table.loc[gini_rows, 'Variable'])}), "
-                   "column (C) shows the difference (B) − (A), not the % change.")
+        note += (f" **Exception:** for the Gini coefficients (rows {row_numbers(gini_rows)}), "
+                 "it shows the difference (B) − (A).")
+    st.caption(note)
     if show_types:
         st.caption(
             "**Inequality** compares the two household types in each steady state; higher "
