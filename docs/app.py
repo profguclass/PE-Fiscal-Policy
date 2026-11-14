@@ -813,6 +813,85 @@ try:
 except Exception as exc:  # noqa: BLE001
     benchmark_error = str(exc)
 
+def settings_comparison():
+    """HTML table of the benchmark (A) vs the settings last applied with Run (B),
+    with every changed item highlighted, plus a one-line list of the changes."""
+    def num(x):
+        return f"{x:.2f}".rstrip("0").rstrip(".")
+
+    def diff(a, b, unit=""):
+        d = b - a
+        return f"{'+' if d > 0 else '−'}{num(abs(d))}{unit}"
+
+    def triple(xs):
+        return " / ".join(num(x) for x in xs)
+
+    rows = []  # (item, benchmark, current, change or "", short summary of the change)
+
+    def add(item, a, b, unit="", dunit=""):
+        chg = diff(a, b, dunit) if abs(b - a) > 1e-9 else ""
+        rows.append((item, num(a) + unit, num(b) + unit, chg,
+                     f"{num(a)}{unit} → {num(b)}{unit}"))
+
+    def add3(item, a, b, unit="", dunit=""):
+        changed = any(abs(y - x) > 1e-9 for x, y in zip(a, b))
+        chg = " / ".join(diff(x, y) for x, y in zip(a, b)) + dunit if changed else ""
+        rows.append((item, triple(a) + unit, triple(b) + unit, chg,
+                     f"{triple(a)}{unit} → {triple(b)}{unit}"))
+
+    add("A1. Total gov't spending, G/Y", BENCH_s_G_pct, s_G_new_pct, "%", "%p")
+    add3("A2. Composition of G: Iᴳ / Gᶜ / Gᵀ",
+         (BENCH_f_IG_pct, BENCH_f_GC_pct, BENCH_f_GT_pct), (f_IG_pct, f_GC_pct, f_GT_pct),
+         "%", "%p")
+    k, n, c = (100 * x for x in tax_mix_v)
+    add3("B1. Tax mix: labor / capital / consumption",
+         (BENCH_f_N_pct, BENCH_f_K_pct, BENCH_f_C_pct), (n, k, c), "%", "%p")
+    add("B2. Hand-to-mouth labor-tax rate, h", BENCH_htm_pct, htm_pct, "% of τⁿ", "%p")
+    if dG_pct == 0:
+        rows.append(("C. Change in G/Y (C1, C2, C3)", "none", "none", "", ""))
+    else:
+        how = "permanent" if permanent else f"temporary, {duration_years} year(s)"
+        rows.append(("C. Change in G/Y (C1, C2, C3)", "none",
+                     f"{diff(0, dG_pct, '%p')}, {how}; split {triple(dX_pct)}%p",
+                     f"G/Y {num(s_G_new_pct)}% → {num(s_G_new_pct + dG_pct)}%",
+                     f"{diff(0, dG_pct, '%p')} ({how})"))
+    add("D. Value of in-kind welfare, φ", BENCH_phi, phi)
+    add("E. Hand-to-mouth share, λ", BENCH_lam, lam)
+    add("F. Public-capital productivity, θ_G", BENCH_theta_G, theta_G)
+
+    changes = [f"{r[0].split('. ')[0]} {r[4]}" for r in rows if r[3]]
+    if changes:
+        st.markdown("**You are comparing the benchmark (A) with these changes (B):** "
+                    + "; ".join(changes) + ".")
+    else:
+        st.markdown("**The current settings are the benchmark**, so (A) and (B) are the "
+                    "same economy. Change a sidebar item and click **▶ Run** to compare.")
+
+    head = ("<tr><th class='item'>Item</th><th>(A) Benchmark"
+            + (" (your own)" if "bench" in st.session_state else "")
+            + "</th><th>(B) Current settings</th><th>Change, (B) − (A)</th></tr>")
+    body = "".join(
+        f"<tr class='{'chg' if chg else ''}'><td class='item'>{item}</td>"
+        f"<td>{a}</td><td>{'<b>' + b + '</b>' if chg else b}</td>"
+        f"<td class='delta'>{'<b>' + chg + '</b>' if chg else '—'}</td></tr>"
+        for item, a, b, chg, _ in rows)
+    st.markdown(
+        "<style>"
+        ".cmp-table{width:100%;border-collapse:collapse;font-size:0.92rem;}"
+        ".cmp-table th,.cmp-table td{padding:0.3rem 0.6rem;text-align:center;}"
+        ".cmp-table .item{text-align:left;}"
+        ".cmp-table tr.chg td{background:rgba(255,170,0,0.22) !important;}"
+        ".cmp-table tr.chg td.item{box-shadow:inset 4px 0 0 #f0a000;font-weight:600;}"
+        ".cmp-table tr.chg td.delta{color:#e08600;}"
+        "</style>"
+        f"<table class='cmp-table'>{head}{body}</table>", unsafe_allow_html=True)
+    st.caption("Highlighted rows differ from the benchmark. The table shows the settings "
+               "last applied with ▶ Run; items rescaled to 100% are shown after rescaling.")
+
+
+st.subheader("What Is Being Compared")
+settings_comparison()
+
 st.info(
     "**What this page compares.** **S1** and **S2** compare two economies: **(A) the "
     "benchmark**, a fixed reference economy (described under S1; change it with "
