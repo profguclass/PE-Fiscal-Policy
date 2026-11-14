@@ -69,7 +69,14 @@ def level_panels(series_specs, yrs):
                         horizontal_spacing=0.12, vertical_spacing=0.32 / rows)
     for k, (name, levels, color, bench) in enumerate(series_specs):
         row, col = k // cols + 1, k % cols + 1
-        fig.add_trace(go.Scatter(x=yrs, y=levels[:len(yrs)], mode="lines+markers", name=name,
+        shown = np.asarray(levels[:len(yrs)], dtype=float)
+        hover = "Year %{x}: %{y:,.4g}"
+        pct = None
+        if abs(bench) > 1e-12:  # the hover also gives the % change from the benchmark level
+            pct = (shown / bench - 1) * 100
+            hover += "<br>%{customdata:+.2f}% vs benchmark (" + f"{bench:,.4g})"
+        fig.add_trace(go.Scatter(x=yrs, y=shown, mode="lines+markers", name=name,
+                                  customdata=pct, hovertemplate=hover + "<extra></extra>",
                                   line=dict(color=color, width=2.5), marker=dict(size=4)),
                       row=row, col=col)
         fig.add_trace(go.Scatter(x=[yrs[0], yrs[-1]], y=[levels[-1], levels[-1]], mode="lines",
@@ -119,8 +126,8 @@ def equilibrium_rows(ss, show_types, out=None, inequality=True):
         ("Labor market", "Labor productivity Y/N (output per hour)", ss.Y / ss.N),
         ("Gov't expenditure", "Government spending G (total)", ss.G),
         ("Gov't expenditure", "  Public investment Iᴳ", ss.IG),
-        ("Gov't expenditure", "  In-kind welfare Gᶜ", ss.GC),
-        ("Gov't expenditure", "  Cash welfare Gᵀ", ss.GT),
+        ("Gov't expenditure", "  In-kind transfer Gᶜ", ss.GC),
+        ("Gov't expenditure", "  Cash transfer Gᵀ", ss.GT),
         ("Gov't revenue", "Government revenue (total)",
          government_revenue(out)[0]),
         ("Gov't revenue", "Capital-tax rate τᵏ (%)", ss.tau_k * 100),
@@ -389,7 +396,7 @@ in_GC = comp_c2.number_input("In-kind Gᶜ", 0.0, 100.0, BENCH_f_GC_pct, 5.0, ke
 in_GT = comp_c3.number_input("Cash Gᵀ", 0.0, 100.0, BENCH_f_GT_pct, 5.0, key=wkey("in_GT"))
 comp_total = in_IG + in_GC + in_GT
 if comp_total <= 0:
-    st.sidebar.error("At least one share must be positive; using 100% cash welfare.")
+    st.sidebar.error("At least one share must be positive; using 100% cash transfer.")
     in_IG, in_GC, in_GT, comp_total = 0.0, 0.0, 100.0, 100.0
 elif abs(comp_total - 100.0) > 1e-9:
     st.sidebar.warning(f"The shares add up to {comp_total:.0f}%, not 100%, so they are "
@@ -481,9 +488,9 @@ else:
 exo_box = st.sidebar.container(border=True)
 exo_box.markdown("**Exogenous parameters**")
 
-# D. Value of in-kind welfare to households -----------------------------------
+# D. Value of in-kind transfer to households -----------------------------------
 phi = exo_box.slider(
-    "**D. Value of in-kind welfare Gᶜ, φ**", 0.0, 1.0, BENCH_phi, 0.05,
+    "**D. Value of in-kind transfer Gᶜ, φ**", 0.0, 1.0, BENCH_phi, 0.05,
     help="Utility is ln(C + φ·Gᶜ) + θ_L·ln(1−N). φ=0: Gᶜ is a pure drain. "
          "φ=1: Gᶜ is a perfect substitute for private consumption, "
          "so it crowds out C one-for-one.",
@@ -494,9 +501,9 @@ phi = exo_box.slider(
 lam = exo_box.slider(
     "**E. Hand-to-mouth share, λ**", 0.0, 0.9, BENCH_lam, 0.05,
     help="Hand-to-mouth (non-Ricardian) working families own no capital, spend all their "
-         "income each period, and receive all cash welfare Gᵀ. They pay the labor tax "
+         "income each period, and receive all cash transfer Gᵀ. They pay the labor tax "
          "at h times the optimizers' rate, τⁿᴴ = h·τⁿ (item B), and the consumption tax. Optimizers own "
-         "the capital, pay all three taxes, and receive no cash welfare. Both types "
+         "the capital, pay all three taxes, and receive no cash transfer. Both types "
          "benefit from Gᶜ. λ=0 is a single representative household.",
     key=wkey("lam"),
 )
@@ -636,13 +643,13 @@ FAILURE_ECONOMICS = [
     ("consumption share <= 0",
      "Output has four uses: Y = C + I + Iᴳ + Gᶜ. In the long run private investment I "
      "must replace the capital that wears out, I = δ·K, and the capital stock is pinned "
-     "down by the after-tax return to capital. Public investment Iᴳ and in-kind welfare "
-     "Gᶜ use up output directly (cash welfare Gᵀ only moves income, so it does not). "
+     "down by the after-tax return to capital. Public investment Iᴳ and in-kind transfer "
+     "Gᶜ use up output directly (cash transfer Gᵀ only moves income, so it does not). "
      "Here private investment plus the resource-using parts of G already take all of "
      "output, so nothing is left for private consumption, which cannot be zero or "
      "negative.",
      "Lower G/Y (item A1 + C1), or move spending from public investment or in-kind "
-     "welfare toward cash welfare (items A2 and C3)."),
+     "transfer toward cash transfer (items A2 and C3)."),
     ("optimizer labor supply",
      "Optimizers choose hours by equating the value of leisure with what an hour of work "
      "buys: θ_L·(Cᴼ + φ·Gᶜ)/(1 − Nᴼ) = (1−τⁿ)·w/(1+τᶜ). Their consumption Cᴼ is what "
@@ -652,7 +659,7 @@ FAILURE_ECONOMICS = [
      "that is, negative hours. Several forces push this way: optimizers own all the "
      "capital, so with a large hand-to-mouth share λ each of them is very rich (a strong "
      "income effect); high labor and consumption taxes cut what an hour of work buys; "
-     "and a high φ makes in-kind welfare count as their own consumption. Hours cannot be "
+     "and a high φ makes in-kind transfer count as their own consumption. Hours cannot be "
      "negative, so no equilibrium exists.",
      "Lower the hand-to-mouth share λ (item E), the labor or consumption tax's share "
      "(item B), G/Y (item A1 + C1), or φ (item D)."),
@@ -666,11 +673,11 @@ FAILURE_ECONOMICS = [
     ("consumption of one household type",
      "Private consumption C is shared between the two types: C = λ·Cᴴ + (1−λ)·Cᴼ. "
      "Hand-to-mouth households consume their after-tax wages plus all of the cash "
-     "welfare Gᵀ. Here their consumption alone exceeds the economy's private "
+     "transfer Gᵀ. Here their consumption alone exceeds the economy's private "
      "consumption, so optimizers would be left with zero or negative consumption, which "
-     "is impossible. Cash welfare is so large relative to what output leaves for private "
+     "is impossible. Cash transfer is so large relative to what output leaves for private "
      "consumption that it claims more than all of it.",
-     "Lower the cash-welfare share (items A2 and C3), the hand-to-mouth share λ (item E), "
+     "Lower the cash-transfer share (items A2 and C3), the hand-to-mouth share λ (item E), "
      "or G/Y (item A1 + C1)."),
     ("theta_L <= 0",
      "The benchmark's labor-leisure condition cannot be met with positive hours: taxes "
@@ -680,8 +687,8 @@ FAILURE_ECONOMICS = [
     ("cuts a part of government spending below zero",
      "Item C3 lowers one part of G by more than that part's current level. Spending "
      "cannot be negative: negative public investment would mean selling off public "
-     "capital every year, negative in-kind welfare would mean households hand goods to "
-     "the government, and negative cash welfare would be a tax, not a transfer.",
+     "capital every year, negative in-kind transfer would mean households hand goods to "
+     "the government, and negative cash transfer would be a tax, not a transfer.",
      "Make the cut (C1) smaller, or split it differently across the parts (C3)."),
     ("not saddle-path stable",
      "The steady states themselves exist; what fails is the path between them. "
@@ -855,7 +862,7 @@ def settings_comparison():
                      f"{diff(0, dG_pct, '%p')}, {how}; split {triple(dX_pct)}%p",
                      f"G/Y {num(s_G_new_pct)}% → {num(s_G_new_pct + dG_pct)}%",
                      f"{diff(0, dG_pct, '%p')} ({how})"))
-    add("D. Value of in-kind welfare, φ", BENCH_phi, phi)
+    add("D. Value of in-kind transfer, φ", BENCH_phi, phi)
     add("E. Hand-to-mouth share, λ", BENCH_lam, lam)
     add("F. Public-capital productivity, θ_G", BENCH_theta_G, theta_G)
 
@@ -908,8 +915,8 @@ st.write("Exact, closed-form solution of the model's long-run (“great ratios�
          f"equilibrium: the **benchmark scenario** (tax revenue {BENCH_f_N_pct:.0f}% labor "
          f"tax, {BENCH_f_K_pct:.0f}% capital tax, {BENCH_f_C_pct:.0f}% consumption tax; "
          f"θ_G={BENCH_theta_G:.2f}, r={BENCH_r_pct}%, G/Y={BENCH_s_G_pct:.0f}% split into "
-         f"{BENCH_f_IG_pct:.0f}% public investment, {BENCH_f_GC_pct:.0f}% in-kind welfare and "
-         f"{BENCH_f_GT_pct:.0f}% cash welfare, φ={BENCH_phi:.2f}, hand-to-mouth share "
+         f"{BENCH_f_IG_pct:.0f}% public investment, {BENCH_f_GC_pct:.0f}% in-kind transfer and "
+         f"{BENCH_f_GT_pct:.0f}% cash transfer, φ={BENCH_phi:.2f}, hand-to-mouth share "
          f"λ={BENCH_lam:.2f}, hand-to-mouth labor-tax rate h={BENCH_htm_pct:.0f}% of the "
          f"optimizers'; θ_N=0.58 and δ=10%) vs. "
          "**whatever the sidebar is currently set to**.")
@@ -1099,8 +1106,8 @@ if not benchmark_error and cumulative_path is not None:
                          "move together."),
         "Gov't expenditure": ([("Government spending G (total)", perf["G"], "#6b7280", b.G),
                                  ("Public investment Iᴳ", perf["IG"], "#2563eb", b.IG),
-                                 ("In-kind welfare Gᶜ", perf["GC"], "#16a34a", b.GC),
-                                 ("Cash welfare Gᵀ", perf["GT"], "#db2777", b.GT)],
+                                 ("In-kind transfer Gᶜ", perf["GC"], "#16a34a", b.GC),
+                                 ("Cash transfer Gᵀ", perf["GT"], "#db2777", b.GT)],
                                 "Each part of G moves to its level in the new equilibrium; a "
                                 "temporary change (item C2) moves each part by its own amount "
                                 "(item C3) for the chosen years."),
@@ -1172,12 +1179,12 @@ if not benchmark_error and cumulative_path is not None:
             "Labor income is the wage times hours; capital income is the rental rate times "
             "the capital stock. Only optimizers own capital, so all capital income is theirs: "
             "each optimizer owns Kᴼ = K/(1−λ). **Market income** is labor plus capital income "
-            "before taxes and without cash welfare; the two group totals add up to wN + RK. "
+            "before taxes and without cash transfer; the two group totals add up to wN + RK. "
             "**Disposable income** is what each household "
             "can spend, the right-hand side of its budget constraint (Appendix A.3-A.4): for "
             "optimizers, labor income after the labor tax τⁿ plus capital income after the "
             "capital tax τᵏ; for hand-to-mouth households, their wage income after the labor "
-            "tax τⁿᴴ = h·τⁿ plus cash welfare. Both then pay the consumption tax on what they "
+            "tax τⁿᴴ = h·τⁿ plus cash transfer. Both then pay the consumption tax on what they "
             "consume out of it. These come "
             "from the model's exact equations along the path.")
         s1b_tabs["Inequality"] = (
@@ -1196,11 +1203,11 @@ if not benchmark_error and cumulative_path is not None:
             "hand-to-mouth household (2 means twice as much). The Gini coefficient runs from 0 "
             "(equal) to 1; with two groups it equals λ(1−λ)·|yᴼ − yᴴ| / (average income), so it "
             "also depends on the groups' sizes, and it ignores inequality within each group. "
-            "Comparing the Gini of market income (before taxes and cash welfare) with that of "
+            "Comparing the Gini of market income (before taxes and cash transfer) with that of "
             "disposable income shows how much taxes and transfers reduce inequality. "
             "Optimizers' disposable income includes what they save, so the consumption ratio "
             "is often a better guide to living standards. Both types face the same wage, so "
-            "the hours gap comes from differences in wealth and taxes: cash welfare makes "
+            "the hours gap comes from differences in wealth and taxes: cash transfer makes "
             "hand-to-mouth households work less, while a lower labor-tax rate (h < 100%) "
             "makes them work more, and optimizers' capital income makes them work less. A "
             "positive gap means optimizers work more.")
@@ -1226,7 +1233,7 @@ if not benchmark_error and cumulative_path is not None:
                  100.0 + np.append(acc[k], gains_acc[k]), color, 100.0))],
             "Welfare as an index with the benchmark = 100, as in S1's table: 100 plus the % "
             "rise in the benchmark's consumption that would make a household exactly as happy, "
-            "counting own consumption, in-kind welfare and leisure through utility "
+            "counting own consumption, in-kind transfer and leisure through utility "
             "ln(C + φGᶜ) + θ_L·ln(1 − N). **Each year** (left) values that year alone; its "
             "dashed line is the **new equilibrium** (S1's new-equilibrium value). **Accumulated** (right) values years 0 to the year on the axis "
             "together, discounted with β = 1/(1+r): the same gain every year that would add up "
@@ -1253,7 +1260,7 @@ change_word = "raising" if dG_pct > 0 else "cutting"
 duration_text = "permanently" if permanent else f"for {duration_years} year(s) (item C2)"
 st.write(f"Simulates **{change_word} G/Y by {abs(dG_pct):.1f} percentage points (item C1), "
          f"{duration_text}**, split {dX_pct[0]:+.2f}, {dX_pct[1]:+.2f} and {dX_pct[2]:+.2f} "
-         "percentage points across public investment, in-kind welfare and cash welfare "
+         "percentage points across public investment, in-kind transfer and cash transfer "
          "(item C3), in both of S1's economies, holding everything else fixed: in "
          f"**(A) the benchmark** G/Y goes from {BENCH_s_G_pct:.1f}% to "
          f"{BENCH_s_G_pct + dG_pct:.1f}%, and in **(B) the current settings** from "
@@ -1450,21 +1457,21 @@ with st.expander("ℹ️ Methodology notes"):
   production as (Kᴳ/K̄ᴳ)^θG relative to a fixed reference K̄ᴳ of about half the
   benchmark's public capital, so a higher θ_G raises output, and θ_G>0 needs a
   positive Iᴳ share), in-kind
-  welfare Gᶜ (government consumption, valued by households through C+φ·Gᶜ), and cash
-  welfare Gᵀ (transfers paid to households). The three shares are typed in as
+  transfer Gᶜ (government consumption, valued by households through C+φ·Gᶜ), and cash
+  transfer Gᵀ (transfers paid to households). The three shares are typed in as
   percentages; if they don't add up to 100% they are rescaled proportionally. Iᴳ and
   Gᶜ use up output (Y=C+I+Iᴳ+Gᶜ); Gᵀ only moves income to households. With φ=0, Gᶜ
   is a pure drain; with φ=1 it crowds out private consumption one-for-one.
 - **Household types (item E)**: a share λ of households are hand-to-mouth working
-  families (no capital, no saving, labor tax at h·τⁿ, all of the cash welfare Gᵀ); the
+  families (no capital, no saving, labor tax at h·τⁿ, all of the cash transfer Gᵀ); the
   rest are optimizers (own the capital, pay the capital tax and the labor tax at τⁿ, no
-  cash welfare). Everyone pays the consumption tax. Both types benefit from Gᶜ.
+  cash transfer). Everyone pays the consumption tax. Both types benefit from Gᶜ.
   Transition paths are linearized *numerically* around the steady state. See Appendix
   A.3-A.4.
 - **S1 (Comparison between Old and New Equilibrium)** compares a benchmark scenario (by default the app's, which "Set benchmark
   economy" can replace: tax revenue 30% labor tax, 30% capital tax, 40% consumption tax; θ_G=0.10, r=6.5%, G/Y=20% split
   20/50/30 into public investment,
-  in-kind welfare and cash welfare, φ=0.50, λ=0.3, h=50%; θ_N=0.58, δ=10% and 20% target
+  in-kind transfer and cash transfer, φ=0.50, λ=0.3, h=50%; θ_N=0.58, δ=10% and 20% target
   hours) against whatever the sidebar is *currently*
   set to, with G/Y = A1 + C1 (back at A1 in the long run if item C2 makes the change
   temporary), so every control (tax mix, composition, φ, θ_G, G/Y, household types)

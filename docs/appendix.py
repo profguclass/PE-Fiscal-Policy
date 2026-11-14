@@ -59,13 +59,13 @@ def render():
 
     The government's total spending is made of three parts added together. The first is
     public investment, which builds public capital such as roads and bridges. The second
-    is in-kind welfare, goods and services the government hands to people directly. The
-    third is cash welfare, money paid to people. Public capital is a stock, built up over
+    is in-kind transfer, goods and services the government hands to people directly. The
+    third is cash transfer, money paid to people. Public capital is a stock, built up over
     time by public investment.
 
-    Households may value in-kind welfare less than goods they buy for themselves. A number
+    Households may value in-kind transfer less than goods they buy for themselves. A number
     between zero and one, which we will call the in-kind value, says how many units of
-    their own consumption one unit of in-kind welfare is worth to them. When it is one, a
+    their own consumption one unit of in-kind transfer is worth to them. When it is one, a
     meal from the government is as good as a meal they buy; when it is zero, the
     government's gift is worth nothing to them.
 
@@ -105,9 +105,9 @@ def render():
     | $Y_t,\ C_t,\ I_t$ | Output, private consumption, private investment |
     | $K_t,\ N_t$ | Private capital, hours worked (a fraction of the time endowment; $1-N_t$ is leisure) |
     | $w_t,\ R_t$ | Real wage, rental rate of capital |
-    | $G_t = I^G_t+G^C_t+G^T_t$ | Government spending: public investment + in-kind welfare + cash welfare |
+    | $G_t = I^G_t+G^C_t+G^T_t$ | Government spending: public investment + in-kind transfer + cash transfer |
     | $K^G_t$ | Public capital (built by public investment $I^G_t$) |
-    | $\phi$ | How much households value in-kind welfare, relative to their own consumption ($0\le\phi\le1$) |
+    | $\phi$ | How much households value in-kind transfer, relative to their own consumption ($0\le\phi\le1$) |
     | $\lambda$ | Share of households that are hand-to-mouth |
     | $\tau^N_t,\ \tau^K_t,\ \tau^C_t$ | Labor-tax rate (optimizers; hand-to-mouth pay $h\,\tau^N_t$), capital-tax rate (on rental income), consumption-tax rate |
     | $\beta=1/(1+r),\ \delta$ | Discount factor ($r$ = steady-state real interest rate), depreciation rate |
@@ -187,8 +187,8 @@ def render():
     future as large as possible.
 
     Their happiness in any one year has two parts. The first part comes from what we may
-    call effective consumption: the goods they buy for themselves, plus in-kind welfare
-    counted at its in-kind value, so that one unit of in-kind welfare counts as that many
+    call effective consumption: the goods they buy for themselves, plus in-kind transfer
+    counted at its in-kind value, so that one unit of in-kind transfer counts as that many
     units of their own goods. Happiness grows with the logarithm of effective consumption,
     which means that each one-percent rise in effective consumption adds the same amount of
     happiness, whether they are rich or poor. The second part comes from leisure: the
@@ -202,9 +202,9 @@ def render():
     machines. What they have to spend is their labor income, the wage times their hours,
     plus their capital income, the rental rate times their machines; the government takes
     the labor-tax rate's fraction of their labor income and the capital-tax rate's fraction
-    of their capital income. Spending must equal what is left. They receive no cash welfare, unless the
+    of their capital income. Spending must equal what is left. They receive no cash transfer, unless the
     hand-to-mouth share is zero: in that case the optimizers are the whole population, cash
-    welfare is paid to them and added to what they have to spend, and the island becomes
+    transfer is paid to them and added to what they have to spend, and the island becomes
     a single representative household.
 
     Their machines also change from year to year. Next year's stock of machines equals
@@ -294,15 +294,15 @@ def render():
     **What the hand-to-mouth households want.** The hand-to-mouth households own no
     machines and can neither save nor borrow, so whatever they receive this year they spend
     this year. Their happiness has the same two parts as the optimizers': the logarithm of
-    effective consumption, their own goods plus in-kind welfare counted at its in-kind
+    effective consumption, their own goods plus in-kind transfer counted at its in-kind
     value, and the leisure weight times the logarithm of leisure. Each year they choose how
     much to consume and how many hours to work to make that year's happiness as large as
     possible.
 
     Their budget is simple. What they spend on consumption, at one plus the consumption-tax
     rate per unit, equals their wage times their hours, less the labor tax at the fraction
-    h of the optimizers' rate, plus their share of the cash welfare. All of the island's cash
-    welfare goes to them, so each hand-to-mouth household receives total cash welfare
+    h of the optimizers' rate, plus their share of the cash transfer. All of the island's cash
+    transfer goes to them, so each hand-to-mouth household receives total cash transfer
     divided by the hand-to-mouth share. They own no machines, so they pay no capital tax,
     but every good they buy carries the consumption tax. Nothing
     they do this year changes what they can do next year, so they solve their problem one
@@ -322,8 +322,8 @@ def render():
     must equal their after-tax wage divided by one plus the consumption-tax rate.
 
     Putting this rule together with their budget tells us their hours directly. First add
-    up their resources other than work: the cash welfare each one receives, plus the
-    in-kind welfare counted at its in-kind value and priced as if it were bought at the
+    up their resources other than work: the cash transfer each one receives, plus the
+    in-kind transfer counted at its in-kind value and priced as if it were bought at the
     after-tax price, that is, multiplied by one plus the consumption-tax rate. Multiply
     these other resources by the leisure weight and subtract the result from the after-tax
     wage. Then divide by the after-tax wage times one plus the leisure weight. What comes
@@ -332,7 +332,7 @@ def render():
     all, and their hours are zero.
 
     The rule says that the richer they are without working, the less they work. More cash
-    welfare or more in-kind welfare means fewer hours; a higher after-tax wage means more.
+    transfer or more in-kind transfer means fewer hours; a higher after-tax wage means more.
     Once their hours are known, their consumption follows from their budget.
     """
     )
@@ -389,7 +389,7 @@ def render():
     **What the government does.** The government sets its total spending as a share of
     output (sidebar item A1) and divides it into its three parts (item A2); item C changes
     that share, permanently or for a few years. Its total spending each year is exactly
-    public investment plus in-kind welfare plus cash welfare.
+    public investment plus in-kind transfer plus cash transfer.
 
     Public investment builds public capital the same way private investment builds
     machines. Next year's public capital equals this year's public capital, minus the
@@ -454,9 +454,9 @@ def render():
     and the wages and rents cancel the firm's costs. What remains is a statement about
     goods: everything the island makes each year is used in exactly four ways. Output
     equals private consumption, plus private investment, plus public investment, plus
-    in-kind welfare.
+    in-kind transfer.
 
-    Cash welfare is absent from this list. It does not use up any goods; it only moves
+    Cash transfer is absent from this list. It does not use up any goods; it only moves
     income from taxpayers to the people who receive it, and they then spend it, so it
     already shows up inside private consumption.
     """
@@ -538,7 +538,7 @@ def render():
         """
     **Special case.** Strip the island down. Make the hand-to-mouth share zero, so that
     everyone is an optimizer. Use only one of the three taxes. And
-    spend all government money on things households do not value: in-kind welfare with an
+    spend all government money on things households do not value: in-kind transfer with an
     in-kind value of zero, or public investment with a public-capital elasticity of zero.
     What is left is the standard neoclassical growth model with government spending.
     """
@@ -552,7 +552,7 @@ def render():
     st.markdown(
         """
     **One result to explore.** Suppose there is no labor tax, so the government uses only
-    the capital and consumption taxes (a labor share of zero in item B1). Then shifting cash welfare toward the hand-to-mouth
+    the capital and consumption taxes (a labor share of zero in item B1). Then shifting cash transfer toward the hand-to-mouth
     households changes *who* does the island's work, but not *total* long-run output, as
     long as the hand-to-mouth households still work some hours. The reason is that, with
     logarithmic happiness, the two kinds of household's work-versus-leisure rules add up to

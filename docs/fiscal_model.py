@@ -287,9 +287,9 @@ def steady_state_for_policy(theta_N: float, delta: float, r: float, A: float, th
 #                   tau_n = f_N*G / (w*((1-lam)*N^O + h*lam*N^H)).
 #     Consumption:  tau_c = f_C*G / C on everyone's private consumption; p = 1+tau_c.
 #   * Hand-to-mouth (share lam): no capital, consume all income each period, receive
-#     ALL cash welfare G_T (G_T/lam each); with w_H = (1-h*tau_n)*w:
+#     ALL cash transfer G_T (G_T/lam each); with w_H = (1-h*tau_n)*w:
 #       p*C^H = w_H*N^H + G_T/lam,   theta_L*(C^H + phi*GC)/(1-N^H) = w_H/p
-#   * Optimizers (share 1-lam): own all capital, receive no cash welfare:
+#   * Optimizers (share 1-lam): own all capital, receive no cash transfer:
 #       theta_L*(C^O + phi*GC)/(1-N^O) = (1-tau_n)*w/p,  Euler in (C^O + phi*GC)*p
 #       with the after-tax return (1-tau_k)*R.
 #   Aggregates:  C = lam*C^H + (1-lam)*C^O,  N = lam*N^H + (1-lam)*N^O.
@@ -300,9 +300,9 @@ def _htm_choice(w_H: float, GT: float, GC: float, lam: float,
                 theta_L: float, phi: float, p: float = 1.0) -> tuple[float, float]:
     """Hand-to-mouth household's static choice: maximize ln(C+phi*GC) + theta_L*ln(1-N)
     subject to p*C = w_H*N + GT/lam, with w_H its after-labor-tax wage and p = 1 +
-    consumption-tax rate. Returns (N^H, C^H); N^H is 0 (corner) if cash welfare is so
+    consumption-tax rate. Returns (N^H, C^H); N^H is 0 (corner) if cash transfer is so
     large the household would rather not work."""
-    m = GT / lam  # cash welfare per hand-to-mouth household
+    m = GT / lam  # cash transfer per hand-to-mouth household
     NH = max(0.0, (w_H - theta_L * (m + p * phi * GC)) / (w_H * (1.0 + theta_L)))
     return NH, (w_H * NH + m) / p
 
@@ -791,7 +791,7 @@ def household_outcomes(ss: SteadyState, state: np.ndarray) -> dict:
     exactly. Incomes are per person: market labor and capital income (before tax), and
     disposable income = the right-hand side of each household's budget constraint
     (spent on consumption including the consumption tax, and on investment).
-    With lam=0 everyone is an optimizer, who then also receives the cash welfare."""
+    With lam=0 everyone is an optimizer, who then also receives the cash transfer."""
     lam = ss.lam
     rows = []
     for k, c, u_IG, u_GC, u_GT, kg in np.asarray(state).T:

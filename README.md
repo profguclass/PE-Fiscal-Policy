@@ -11,10 +11,10 @@ the long run and year by year along the transition.
 
 | Sidebar item | Setting |
 |---|---|
-| A | Public expenditures: total government spending, G/Y, before any change (A1), and its composition across public investment, in-kind welfare and cash welfare (A2) |
+| A | Public expenditures: total government spending, G/Y, before any change (A1), and its composition across public investment, in-kind transfer and cash transfer (A2) |
 | B | Tax mix: the shares of revenue from the labor, capital and consumption taxes, and the hand-to-mouth households' labor-tax rate as a percentage h of the optimizers' |
-| C | Change in G/Y: by how many percentage points (C1), so the current economy has G/Y = A1 + C1; whether the change is permanent or temporary, and for how many years (C2); how the change splits across public investment, in-kind welfare and cash welfare, in percentage points (C3) |
-| D | How much households value in-kind welfare, φ |
+| C | Change in G/Y: by how many percentage points (C1), so the current economy has G/Y = A1 + C1; whether the change is permanent or temporary, and for how many years (C2); how the change splits across public investment, in-kind transfer and cash transfer, in percentage points (C3) |
+| D | How much households value in-kind transfer, φ |
 | E | Share of hand-to-mouth households, λ |
 | F | Public-capital productivity, θ_G |
 
@@ -23,7 +23,7 @@ economy rather than policy choices, grouped in their own box in the sidebar.
 
 The benchmark economy raises revenue 30% from the labor tax, 30% from the capital
 tax and 40% from the consumption tax, with G/Y = 20% split 20/50/30 across public investment, in-kind
-welfare and cash welfare, θ_G = 0.10, φ = 0.50, λ = 0.30 and h = 50%. Users can replace
+transfer and cash transfer, θ_G = 0.10, φ = 0.50, λ = 0.30 and h = 50%. Users can replace
 this benchmark with their own (**⚙ Benchmark**).
 
 Sidebar changes take effect when you click **▶ Run**, so several settings can be
@@ -70,7 +70,7 @@ the equations in boxes.
 ## The model, briefly
 
 - **Households.** A share λ are hand-to-mouth: they own no capital, do not save
-  and receive all of the cash welfare. The rest are optimizers: they own the capital
+  and receive all of the cash transfer. The rest are optimizers: they own the capital
   and pay the capital tax. Everyone pays the labor and consumption taxes, but
   hand-to-mouth households pay the share h of the optimizers' labor-tax rate (h·τⁿ;
   h = 50% by default, set in item B), a simple progressive scheme when h < 100%. Utility is `ln(C + φ·Gᶜ) + θ_L·ln(1 − N)`.
@@ -81,8 +81,8 @@ the equations in boxes.
   capital tax falls on rental income from capital and distorts saving. The labor tax
   falls on wages and distorts work. The consumption tax distorts work only, as long as
   its rate stays constant over time.
-- **Spending.** Public investment accumulates into public capital. In-kind welfare
-  uses up output and is valued by households through φ. Cash welfare only moves
+- **Spending.** Public investment accumulates into public capital. In-kind transfer
+  uses up output and is valued by households through φ. Cash transfer only moves
   income to households.
 - **Solution.** Steady states are solved exactly. Transition paths come from
   log-linearizing around the steady state and solving the saddle path by
