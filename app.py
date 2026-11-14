@@ -820,12 +820,11 @@ try:
 except Exception as exc:  # noqa: BLE001
     benchmark_error = str(exc)
 
-def settings_comparison(for_s3=False):
+def settings_comparison():
     """HTML table of the benchmark (A) vs the settings last applied with Run (B),
-    with every changed item highlighted, plus a one-line list of the changes.
-    S1/S2 compare (A) with (B) at G/Y = A1 + C1, so item C is a difference between
-    them. S3 starts (A) and (B) at their own A1 and applies the same item C to both,
-    so there item C is a shared experiment, not a difference."""
+    with every changed item highlighted, plus a list of the changes for each section.
+    Item C plays a different role by section: in S1/S2 it is part of (B) only
+    (G/Y = A1 + C1), while S3 applies it to both (A) and (B), each from its own A1."""
     def num(x):
         return f"{x:.2f}".rstrip("0").rstrip(".")
 
@@ -859,51 +858,43 @@ def settings_comparison(for_s3=False):
     add("B2. Hand-to-mouth labor-tax rate, h", BENCH_htm_pct, htm_pct, "% of τⁿ", "%p")
     how = "permanent" if permanent else f"temporary, {duration_years} year(s)"
     shock = f"{diff(0, dG_pct, '%p')}, {how}; split {triple(dX_pct)}%p"
-    if for_s3:
-        if dG_pct == 0:
-            rows.append(("C. Change in G/Y, applied to both", "none", "none", "", ""))
-        else:
-            rows.append(("C. Change in G/Y, applied to both",
-                         f"{shock}<br>G/Y {num(BENCH_s_G_pct)}% → {num(BENCH_s_G_pct + dG_pct)}%",
-                         f"{shock}<br>G/Y {num(s_G_new_pct)}% → {num(s_G_new_pct + dG_pct)}%",
-                         "", ""))
-    elif dG_pct == 0:
+    if dG_pct == 0:
         rows.append(("C. Change in G/Y (C1, C2, C3)", "none", "none", "", ""))
     else:
-        rows.append(("C. Change in G/Y (C1, C2, C3)", "none",
-                     shock,
-                     f"G/Y {num(s_G_new_pct)}% → {num(s_G_new_pct + dG_pct)}%",
+        rows.append(("C. Change in G/Y (C1, C2, C3)",
+                     "S1/S2: none<br>S3: same as (B), "
+                     f"G/Y {num(BENCH_s_G_pct)}% → {num(BENCH_s_G_pct + dG_pct)}%",
+                     f"{shock}<br>G/Y {num(s_G_new_pct)}% → {num(s_G_new_pct + dG_pct)}%",
+                     "S1/S2: part of (B) only<br>S3: applied to both",
                      f"{diff(0, dG_pct, '%p')} ({how})"))
     add("D. Value of in-kind transfer, φ", BENCH_phi, phi)
     add("E. Hand-to-mouth share, λ", BENCH_lam, lam)
     add("F. Public-capital productivity, θ_G", BENCH_theta_G, theta_G)
 
     changes = [f"{r[0].split('. ')[0]} {r[4]}" for r in rows if r[3]]
-    if for_s3:
-        lead = (f"**S3 applies the same change in G/Y ({shock}) to both economies**"
-                if dG_pct != 0 else "**S3 needs a change in G/Y (item C1 ≠ 0)**")
-        if changes:
-            st.markdown(lead + ". The two economies differ in: " + "; ".join(changes)
-                        + ". So the difference in multipliers, (B) − (A), shows how these "
-                        "settings change the effect of the same spending change.")
-        else:
-            st.markdown(lead + ". Items A, B and D–F are the benchmark's, so (A) and (B) are "
-                        "the same economy and their multipliers are identical.")
-    elif changes:
-        st.markdown("**You are comparing the benchmark (A) with these changes (B):** "
-                    + "; ".join(changes) + ".")
+    s3_changes = [x for x in changes if not x.startswith("C ")]
+    if changes:
+        s12 = "**S1/S2 compare the benchmark (A) with these changes (B):** " + "; ".join(changes) + "."
     else:
-        st.markdown("**The current settings are the benchmark**, so (A) and (B) are the "
-                    "same economy. Change a sidebar item and click **▶ Run** to compare.")
+        s12 = ("**The current settings are the benchmark**, so (A) and (B) are the same "
+               "economy. Change a sidebar item and click **▶ Run** to compare.")
+    if dG_pct == 0:
+        s3 = "**S3** needs a change in G/Y (item C1 ≠ 0)."
+    elif s3_changes:
+        s3 = (f"**S3 applies the same change in G/Y ({shock}) to both (A) and (B)**, so its "
+              "multipliers differ only because of: " + "; ".join(s3_changes) + ".")
+    else:
+        s3 = (f"**S3 applies the same change in G/Y ({shock}) to both (A) and (B)**; nothing "
+              "else differs, so their multipliers are identical.")
+    st.markdown(s12 + "  \n" + s3)
 
-    b_head = "(B) Current settings, starting at A1" if for_s3 else "(B) Current settings"
     head = ("<tr><th class='item'>Item</th><th>(A) Benchmark"
             + (" (your own)" if "bench" in st.session_state else "")
-            + f"</th><th>{b_head}</th><th>Change, (B) − (A)</th></tr>")
+            + "</th><th>(B) Current settings</th><th>Change, (B) − (A)</th></tr>")
     body = "".join(
         f"<tr class='{'chg' if chg else ''}'><td class='item'>{item}</td>"
         f"<td>{a}</td><td>{'<b>' + b + '</b>' if chg else b}</td>"
-        f"<td class='delta'>{'<b>' + chg + '</b>' if chg else ('same' if for_s3 and item.startswith('C.') and dG_pct else '—')}</td></tr>"
+        f"<td class='delta'>{'<b>' + chg + '</b>' if chg else '—'}</td></tr>"
         for item, a, b, chg, _ in rows)
     st.markdown(
         "<style>"
@@ -919,7 +910,7 @@ def settings_comparison(for_s3=False):
                "last applied with ▶ Run; items rescaled to 100% are shown after rescaling.")
 
 
-st.subheader("What Is Being Compared in S1 and S2")
+st.subheader("What Is Being Compared")
 settings_comparison()
 
 st.info(
@@ -1279,8 +1270,6 @@ if not benchmark_error and cumulative_path is not None:
 # --------------------------------------------------------------------------
 
 st.subheader("S3. Multiplier Effect of Government Spending")
-st.markdown("##### What Is Being Compared in S3")
-settings_comparison(for_s3=True)
 change_word = "raising" if dG_pct > 0 else "cutting"
 duration_text = "permanently" if permanent else f"for {duration_years} year(s) (item C2)"
 st.write(f"Simulates **{change_word} G/Y by {abs(dG_pct):.1f} percentage points (item C1), "
